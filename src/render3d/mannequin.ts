@@ -287,7 +287,7 @@ export class Mannequin {
       m.uniforms.uBase.value.copy(p.figFill);
       m.uniforms.uShade.value.copy(p.figShade);
       m.uniforms.uInk.value.copy(p.ink);
-      m.uniforms.uTintMax.value = p.dark ? 0.34 : 0.5;
+      m.uniforms.uTintMax.value = p.dark ? 0.28 : 0.48;
     }
     this.noseMat.color.copy(p.ink);
     this.markerMat.uniforms.uInk.value.copy(p.ink);
@@ -350,7 +350,8 @@ export class Mannequin {
     const a = p.a;
     this.tint(this.mats.legs, a[0], 0);
     this.tint(this.mats.hips, a[1], 0);
-    this.tint(this.mats.torso, a[1], 0, a[2]);
+    // 躯干发力时髋部也带一点颜色，避免腰部出现生硬的色带
+    this.tint(this.mats.torso, Math.max(a[1], a[2] * 0.55), 0, a[2]);
     this.tint(this.mats.armR, a[3], p.br);
     this.tint(this.mats.armL, bothArms ? a[3] : 0, bothArms ? p.br : 0);
     this.tint(this.mats.shoulder, 0, p.br);
