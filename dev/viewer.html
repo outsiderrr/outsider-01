@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>动作模型检查台</title>
+    <style>
+      :root {
+        --paper: #f1f3f5; --ink: #1d3f94; --text: #0e1b33; --text-2: #4a5a78; --faint: #9fb2cc;
+        --signal: #ee4f17; --brake: #4c7bd9; --ball: #d4e84a;
+        --fig-near: #1d3f94; --fig-far: #9fb2cc; --fig-fill: #ffffff;
+      }
+      body { margin: 0; padding: 16px; background: var(--paper); color: var(--text); font: 13px/1.5 -apple-system, "PingFang SC", sans-serif; }
+      h1 { font-size: 18px; margin: 0 0 12px; }
+      .row { display: grid; grid-template-columns: 170px repeat(5, minmax(0, 1fr)); gap: 6px; align-items: end; margin-bottom: 10px; }
+      .row svg, #big { width: 100%; background: #fff; border: 1px solid #d6dde7; border-radius: 6px; }
+      .meta { color: var(--text-2); }
+      #stage { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-top: 20px; align-items: start; }
+      #panel label { display: block; margin-bottom: 8px; }
+      #t { width: 100%; }
+    </style>
+  </head>
+  <body>
+    <h1>动作模型检查台（开发用）</h1>
+    <div id="grid"></div>
+    <div id="stage">
+      <svg id="big" viewBox="0 0 654 380"></svg>
+      <div id="panel">
+        <label>击球 <select id="stroke"><option value="forehand">正手</option><option value="backhand">反手</option></select></label>
+        <label>站位 <select id="stance"><option value="neutral">中性</option><option value="semi" selected>半开放</option><option value="open">开放</option></select></label>
+        <label>时间 <input id="t" type="range" min="0" max="1220" value="0" /></label>
+        <button id="play" type="button">播放（慢 5 倍）</button>
+        <pre id="info" class="meta"></pre>
+      </div>
+    </div>
+    <script type="module" src="/src/dev/viewer.ts"></script>
+  </body>
+</html>
