@@ -1,0 +1,7 @@
+/* 字体全部自托管；思源黑体按 unicode-range 分片，浏览器只下载用到的字 */
+@import '@fontsource-variable/noto-sans-sc/wght.css';
+@import '@fontsource-variable/ibm-plex-sans/wght.css';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';
+@import '@fontsource/ibm-plex-sans-condensed/600.css';
+@import '@fontsource/ibm-plex-sans-condensed/700.css';

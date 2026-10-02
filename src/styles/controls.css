@@ -1,0 +1,83 @@
+/* 通用控件：分段按钮、主按钮、图标按钮 */
+.seg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--line-strong);
+  background: var(--panel);
+}
+
+.seg > button {
+  appearance: none;
+  border: 0;
+  border-right: 1px solid var(--line);
+  background: transparent;
+  padding: 7px 11px 8px;
+  font-size: var(--fs-14);
+  line-height: 1.2;
+  color: var(--text);
+  transition: background-color 160ms var(--ease-emph), color 160ms var(--ease-emph);
+}
+
+.seg > button:last-child {
+  border-right: 0;
+}
+
+.seg > button:hover {
+  background: var(--paper-2);
+}
+
+.seg > button[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+.seg > button:disabled {
+  color: var(--faint);
+  cursor: not-allowed;
+}
+
+.btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 7px 14px 8px;
+  border: 1px solid var(--line-strong);
+  background: var(--panel);
+  color: var(--text);
+  font-size: var(--fs-14);
+  line-height: 1.2;
+  transition: background-color 160ms var(--ease-emph), transform 120ms var(--ease-emph);
+}
+
+.btn:hover {
+  background: var(--paper-2);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn--primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--on-ink);
+}
+
+.btn--primary:hover {
+  background: var(--ink);
+  filter: brightness(1.12);
+}
+
+.btn--icon {
+  width: 36px;
+  padding: 0;
+}
+
+.btn svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
