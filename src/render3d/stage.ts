@@ -1,11 +1,12 @@
 import * as THREE from 'three';
+import './stage.css';
 import {
-  type KeyframeSet, type Stance, type Stroke, RACKET, getSet, poseAt, racketSpeed, shoulderHipSeparation, solvePose,
+  type KeyframeSet, type Stance, type Stroke, type Pose, type Activation, RACKET, getSet, poseAt, racketSpeed, shoulderHipSeparation, solvePose,
 } from '../model';
 import { add, scale } from '../model/vec';
 import { FloorAnnotations } from './annotations';
 import { Ball, ballPosition } from './ball';
-import { CameraRig, VIEWS, type ViewName, viewDirection } from './cameraRig';
+import { CameraRig, VIEWS, type ViewName, type ViewSpec, viewDirection } from './cameraRig';
 import { LabelLayer } from './labels';
 import { Mannequin } from './mannequin';
 import { OUTLINE_COLOR, OUTLINE_WIDTH } from './materials';
@@ -50,6 +51,12 @@ export interface StageOptions {
 
 export interface Stage {
   readonly canvas: HTMLCanvasElement;
+  attach(container: HTMLElement): void;
+  setActive(on: boolean): void;
+  setEmphasis(group: number | null): void;
+  setViewSpec(spec: ViewSpec, animate?: boolean): void;
+  /** 仅用于站位界面的短暂过渡，不修改动作模型或其关键帧。 */
+  setPose(pose: Pose | null): void;
   setMotion(stroke: Stroke, stance: Stance): void;
   setTime(t: number): void;
   setView(v: ViewName | 'free'): void;
@@ -136,6 +143,11 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
   let set: KeyframeSet = getSet('forehand', 'semi');
   let t = 0;
   let playing = false;
+  let active = true;
+  let disposed = false;
+  let emphasis: number | null = null;
+  let hoverEmphasis: number | null = null;
+  let poseOverride: Pose | null = null;
   let sceneDirty = true;
   let dirty = true;
   let lastRender = 0;
@@ -227,6 +239,7 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
     mannequin.setPixelRatio(pr);
     shadowMat.needsUpdate = true;
     dirty = true;
+    schedule();
   }
 
   function applyPalette(p: Palette): void {
@@ -247,6 +260,7 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
     notes.setPalette(p);
     sceneDirty = true;
     dirty = true;
+    schedule();
   }
 
   function frameTargets(): void {
@@ -260,6 +274,7 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
     }
     const center = toThree([x / 21, y / 21, 100]);
     rig.target.copy(center);
+    rig.refreshTarget();
     floorMat.uniforms.uCenter.value.set(center.x, center.z);
     light.position.set(center.x - 1.3, 3.6, center.z - 1.5);
     light.target.position.set(center.x, 0, center.z);
@@ -267,6 +282,7 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
 
   function layout(): void {
     rects = [];
+    let bottomBand = 0;
     if (multi && width >= 720) {
       const gap = 10;
       let sw = Math.round(Math.min(210, Math.max(132, width * 0.19)));
@@ -278,9 +294,16 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
       }
       const x = width - sw - 14;
       (['front', 'side', 'top'] as const).forEach((name, i) => rects.push({ name, x, y: 14 + i * (sh + gap), w: sw, h: sh }));
+    } else if (multi) {
+      const gap = 7;
+      const sw = Math.max(1, Math.floor((width - 28 - gap * 2) / 3));
+      const sh = Math.max(1, Math.floor(Math.min(sw * 1.05, height * 0.23)));
+      bottomBand = sh + 24;
+      (['front', 'side', 'top'] as const).forEach((name, i) => rects.push({ name, x: 14 + i * (sw + gap), y: height - sh - 10, w: sw, h: sh }));
     }
-    const shiftPx = rects.length ? (rects[0].w + 28) / 2 : 0;
-    rig.setAspect(width / height, (shiftPx * rig.frameHeight) / height);
+    const shiftPx = rects.length && !bottomBand ? (rects[0].w + 28) / 2 : 0;
+    const heightScale = height / Math.max(1, height - bottomBand);
+    rig.setAspect(width / height, (shiftPx * rig.frameHeight) / height, -(bottomBand * rig.frameHeight * heightScale) / (height * 2), heightScale);
     opts.onLayout?.(rects);
   }
 
@@ -290,10 +313,17 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
     renderer.setSize(width, height, false);
     layout();
     dirty = true;
+    schedule();
   }
 
   function updateScene(): void {
-    const pose = poseAt(set, t);
+    const source = poseOverride ?? poseAt(set, t);
+    const selected = hoverEmphasis ?? emphasis;
+    const pose = selected === null ? source : {
+      ...source,
+      a: [0, 1, 2, 3, 4].map((i) => i === selected ? 1 : 0) as unknown as Activation,
+      br: 0,
+    };
     const j = solvePose(pose);
     mannequin.update(j, pose, set.stroke === 'backhand');
     mannequin.setMarkersVisible(overlays.markers);
@@ -315,6 +345,11 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
     const near = Math.abs(t - tc) < 0.07;
     const tip = add(j.racket.center, scale(j.racket.dir, RACKET.headHalfLength + 6));
     labels.set('speed', near ? toThree(tip) : null, fmt('speed', racketSpeed(set, tc)), 'is-speed');
+    for (const label of labels.el.querySelectorAll<HTMLElement>('.stage-label')) {
+      label.tabIndex = 0;
+      label.style.pointerEvents = 'auto';
+      label.dataset.emphasis = label.classList.contains('is-speed') ? '4' : '2';
+    }
     sceneDirty = false;
   }
 
@@ -357,19 +392,52 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
       renderView(cam, r.x, r.y, r.w, r.h, 1.1, palette.paper2);
     }
     renderer.setScissorTest(false);
-    if (playing && lastRender && now - lastRender < 120) governor.sample(now - lastRender);
+    // 已在暂停、隐藏和重新激活时清零；极低帧率也必须纳入降档判断。
+    if (playing && lastRender) governor.sample(Math.min(1000, now - lastRender));
     lastRender = now;
+    canvas.dataset.renderCount = String(Number(canvas.dataset.renderCount ?? 0) + 1);
+    canvas.dataset.renderTime = now.toFixed(2);
+    canvas.dataset.quality = tier;
   }
 
   let raf = 0;
+  function schedule(): void {
+    if (!disposed && active && !document.hidden && !raf) raf = requestAnimationFrame(loop);
+  }
   const loop = (now: number) => {
+    raf = 0;
+    if (!active || document.hidden || disposed) return;
     if (rig.update(now)) dirty = true;
     if (dirty || sceneDirty) {
       dirty = false;
       render(now);
     }
-    raf = requestAnimationFrame(loop);
+    if (rig.animating) schedule();
   };
+
+  function onVisibility(): void {
+    if (document.hidden) {
+      cancelAnimationFrame(raf);
+      raf = 0;
+      lastRender = 0;
+    } else schedule();
+  }
+  function labelHighlight(e: Event): void {
+    const el = e.target instanceof Element ? e.target.closest<HTMLElement>('[data-emphasis]') : null;
+    hoverEmphasis = el ? Number(el.dataset.emphasis) : null;
+    sceneDirty = true;
+    schedule();
+  }
+  function clearHighlight(): void {
+    hoverEmphasis = null;
+    sceneDirty = true;
+    schedule();
+  }
+  labels.el.addEventListener('pointerover', labelHighlight);
+  labels.el.addEventListener('focusin', labelHighlight);
+  labels.el.addEventListener('pointerout', clearHighlight);
+  labels.el.addEventListener('focusout', clearHighlight);
+  document.addEventListener('visibilitychange', onVisibility);
 
   const ro = new ResizeObserver(resize);
   ro.observe(container);
@@ -380,36 +448,81 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
   trail.setMotion(set);
   resize();
   applyTier();
-  raf = requestAnimationFrame(loop);
+  schedule();
 
   return {
     canvas,
+    attach(next) {
+      if (disposed || next === container) return;
+      ro.disconnect();
+      container = next;
+      container.append(canvas, labels.el);
+      ro.observe(container);
+      resize();
+    },
+    setActive(on) {
+      if (disposed || active === on) return;
+      active = on;
+      canvas.dataset.active = String(on);
+      lastRender = 0;
+      governor.reset();
+      if (on) { dirty = true; schedule(); }
+      else { cancelAnimationFrame(raf); raf = 0; }
+    },
+    setEmphasis(group) {
+      const next = group !== null && group >= 0 && group <= 4 ? Math.round(group) : null;
+      if (emphasis === next) return;
+      emphasis = next;
+      sceneDirty = true;
+      schedule();
+    },
+    setViewSpec(spec, animate = true) {
+      rig.setViewSpec(spec, performance.now(), animate && !matchMedia('(prefers-reduced-motion: reduce)').matches);
+      canvas.classList.remove('is-free');
+      dirty = true;
+      schedule();
+    },
+    setPose(pose) {
+      if (poseOverride === pose) return;
+      poseOverride = pose;
+      sceneDirty = true;
+      schedule();
+    },
     setMotion(stroke, stance) {
+      if (set.stroke === stroke && set.stance === stance) return;
       set = getSet(stroke, stance);
+      poseOverride = null;
       frameTargets();
       trail.setMotion(set);
       sceneDirty = true;
+      schedule();
     },
     setTime(v) {
+      if (t === v) return;
       t = v;
       sceneDirty = true;
+      schedule();
     },
     setView(v) {
       if (v === 'free') rig.enableFree(canvas);
-      else rig.setView(v, performance.now());
+      else rig.setView(v, performance.now(), !matchMedia('(prefers-reduced-motion: reduce)').matches);
       canvas.classList.toggle('is-free', v === 'free');
       dirty = true;
+      schedule();
     },
     setMultiView(on) {
       multi = on;
       layout();
       dirty = true;
+      schedule();
     },
     setOverlays(o) {
       Object.assign(overlays, o);
       sceneDirty = true;
+      schedule();
     },
     setPlaying(on) {
+      if (playing === on) return;
       playing = on;
       lastRender = 0;
       governor.reset();
@@ -420,9 +533,16 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
     },
     tier: () => tier,
     dispose() {
+      if (disposed) return;
+      disposed = true;
       cancelAnimationFrame(raf);
       ro.disconnect();
       offPalette();
+      document.removeEventListener('visibilitychange', onVisibility);
+      labels.el.removeEventListener('pointerover', labelHighlight);
+      labels.el.removeEventListener('focusin', labelHighlight);
+      labels.el.removeEventListener('pointerout', clearHighlight);
+      labels.el.removeEventListener('focusout', clearHighlight);
       rig.disableFree();
       mannequin.dispose();
       racket.dispose();
@@ -432,6 +552,15 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
       labels.dispose();
       floor.geometry.dispose();
       floorMat.dispose();
+      baseline.geometry.dispose();
+      centerMark.geometry.dispose();
+      courtMat.dispose();
+      shadowCatcher.geometry.dispose();
+      shadowMat.dispose();
+      blob.geometry.dispose();
+      blobMat.map?.dispose();
+      blobMat.dispose();
+      light.shadow.map?.dispose();
       renderer.dispose();
       canvas.remove();
     },

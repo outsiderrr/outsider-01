@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
-import { VIEWS, lerpAngle, viewDirection } from '../src/render3d/cameraRig';
+import { CameraRig, VIEWS, lerpAngle, viewDirection } from '../src/render3d/cameraRig';
 import { FpsGovernor, initialTier } from '../src/render3d/quality';
 import { dirToThree, toThree } from '../src/render3d/space';
 
@@ -37,6 +37,24 @@ describe('cameraRig', () => {
   });
   it('四个预设视角都在定义里', () => {
     expect(Object.keys(VIEWS).sort()).toEqual(['axo', 'front', 'side', 'top']);
+  });
+  it('故事专用后方视角可以直接设置，也可以平滑过渡', () => {
+    const rig = new CameraRig();
+    rig.setViewSpec({ azimuth: 145, elevation: 18, zoom: 1.2 }, 0, false);
+    expect(rig.animating).toBe(false);
+    expect(rig.camera.position.z).toBeGreaterThan(0);
+    expect(rig.camera.zoom).toBe(1.2);
+    rig.setViewSpec({ azimuth: -145, elevation: 18, zoom: 1 }, 100);
+    expect(rig.animating).toBe(true);
+    rig.update(800);
+    expect(rig.animating).toBe(false);
+    expect(rig.camera.position.x).toBeLessThan(0);
+  });
+  it('移动端底部三视图为主画面保留上方空间', () => {
+    const rig = new CameraRig();
+    rig.setAspect(0.8, 0, -0.4, 1.3);
+    expect((rig.camera.top + rig.camera.bottom) / 2).toBeCloseTo(-0.4);
+    expect(rig.camera.top - rig.camera.bottom).toBeCloseTo(2.6 * 1.3);
   });
 });
 
