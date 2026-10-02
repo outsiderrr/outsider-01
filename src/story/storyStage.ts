@@ -23,6 +23,15 @@ interface StanceTween { section: StorySection; from: Pose; start: number }
 const phaseNames = ['ready', 'backswing', 'drive', 'contact', 'finish'] as const;
 const groups = ['legs', 'hips', 'trunk', 'arm', 'head'] as const;
 
+/** 仅露出边缘时先保留线稿；可检查的舞台至少有 70% 的可容纳面积进入视口。 */
+export function stageVisibleEnough(rect: Pick<DOMRect, 'left' | 'right' | 'top' | 'bottom' | 'width' | 'height'>, viewportWidth: number, viewportHeight: number): boolean {
+  const top = Math.min(80, viewportHeight * 0.15);
+  const visibleWidth = Math.max(0, Math.min(viewportWidth, rect.right) - Math.max(0, rect.left));
+  const visibleHeight = Math.max(0, Math.min(viewportHeight, rect.bottom) - Math.max(top, rect.top));
+  const possible = Math.min(rect.width, viewportWidth) * Math.min(rect.height, viewportHeight - top);
+  return possible > 0 && visibleWidth * visibleHeight >= possible * 0.7;
+}
+
 /** 一张 WebGL 画布按需迁移，页面其余位置一直保留构建时生成的静态图。 */
 export async function mountStory(root: HTMLElement, lang: Lang, opts: { force2d: boolean }): Promise<{ dispose(): void }> {
   const sections = [...root.querySelectorAll<HTMLElement>('[data-story-slot]')].flatMap((slot): StorySection[] => {
@@ -38,6 +47,7 @@ export async function mountStory(root: HTMLElement, lang: Lang, opts: { force2d:
 
   let disposed = false;
   let stage: Stage | null = null;
+  let pendingStage: Stage | null = null;
   let loaded = opts.force2d;
   let loading: Promise<void> | null = null;
   let active: StorySection | null = null;
@@ -128,33 +138,51 @@ export async function mountStory(root: HTMLElement, lang: Lang, opts: { force2d:
   }
   async function ensureStage(): Promise<void> {
     if (loaded || loading || !active) return;
+    if (!stageVisibleEnough(active.slot.getBoundingClientRect(), innerWidth, innerHeight)) return;
+    root.dataset.storyRenderer = 'loading';
     loading = (async () => {
+      let attempted = false;
       try {
         // force2d 在进入这里之前短路；低配/离线降级不要求下载 Three.js。
         const { createStage } = await import('../render3d/stage');
         if (disposed || !active) return;
-        stage = createStage(active.slot, {
+        // 下载期间用户可能已滚走，等舞台再次可检查时再建立 GPU 资源。
+        if (!stageVisibleEnough(active.slot.getBoundingClientRect(), innerWidth, innerHeight)) return;
+        attempted = true;
+        pendingStage = createStage(active.slot, {
           overlays: { floor: true, trail: true, path: false, markers: true, labels: true },
           label: (kind, value) => kind === 'speed'
             ? `${lang === 'zh' ? '模型拍速' : 'Model speed'} ${value.toFixed(1)} m/s`
             : `${lang === 'zh' ? '肩髋差' : 'Separation'} ${Math.round(value)}°`,
         });
-        if (stage) {
+        if (pendingStage) {
+          pendingStage.setActive(false);
+          await pendingStage.ready;
+          if (disposed) { pendingStage.dispose(); pendingStage = null; return; }
+          stage = pendingStage;
+          pendingStage = null;
           stage.canvas.setAttribute('role', 'img');
           stage.canvas.setAttribute('aria-label', lang === 'zh' ? '网球挥拍示意模型，动作说明见相邻文字' : 'Illustrative tennis swing model. Details are in the adjacent text.');
-          active.slot.classList.add('has-live-stage', 'has-stage');
-          active.el.classList.add('has-story-3d');
-          if (active.staticEl) active.staticEl.hidden = true;
+          if (active) {
+            stage.attach(active.slot);
+            stage.setActive(true);
+            active.slot.classList.add('has-live-stage', 'has-stage');
+            active.el.classList.add('has-story-3d');
+            if (active.staticEl) active.staticEl.hidden = true;
+          }
         }
       } catch {
         // 留下可读、可操作的 SVG，模块下载失败也不抹掉正文或按钮。
+        pendingStage?.dispose();
+        pendingStage = null;
+        attempted = true;
         root.dataset.storyFallback = 'load-error';
       } finally {
-        loaded = !!active;
+        loaded = attempted;
         loading = null;
         viewKey = '';
         fallbackKey = '';
-        root.dataset.storyRenderer = stage ? '3d' : '2d';
+        root.dataset.storyRenderer = stage ? '3d' : loaded ? '2d' : 'deferred';
         schedule();
       }
     })();
@@ -198,6 +226,7 @@ export async function mountStory(root: HTMLElement, lang: Lang, opts: { force2d:
     if (disposed || document.hidden) return;
     setActive(selectSection());
     if (!active) return;
+    void ensureStage();
     const section = active;
     const dt = frameTime ? Math.min(0.05, (now - frameTime) / 1000) : 0;
     frameTime = now;
@@ -206,7 +235,7 @@ export async function mountStory(root: HTMLElement, lang: Lang, opts: { force2d:
     let emphasis: number | null = null;
     let key = section.name as string;
     if (section.name === 'cover') {
-      if (!paused && !reduced) coverTime = (coverTime + dt) % 7.1;
+      if (!paused && !reduced && loaded) coverTime = (coverTime + dt) % 7.1;
       currentTime = reduced ? 0.8 : Math.min(1.22, coverTime / 5);
     } else if (section.name === 'chain') {
       section.position = cardPosition(section);
@@ -229,7 +258,7 @@ export async function mountStory(root: HTMLElement, lang: Lang, opts: { force2d:
     // 标签高亮优先于滚动强调；滚动更新不会冲掉仍在悬停/聚焦的部位。
     emphasis = partEmphasis(hoveredPart) ?? partEmphasis(focusedPart) ?? emphasis;
     root.dataset.storyEmphasis = emphasis === null ? 'none' : String(emphasis);
-    const playing = section.name === 'cover' && !paused && !reduced;
+    const playing = section.name === 'cover' && !paused && !reduced && loaded;
     root.dataset.storyTime = currentTime.toFixed(3);
     root.dataset.storyReducedMotion = String(reduced);
     root.dataset.storyPlaying = String(playing);
@@ -249,7 +278,7 @@ export async function mountStory(root: HTMLElement, lang: Lang, opts: { force2d:
       stage.canvas.dataset.time = currentTime.toFixed(3);
       stage.canvas.dataset.stroke = stroke;
       stage.canvas.dataset.stance = section.stance;
-    } else if (loaded) {
+    } else if (loaded || loading) {
       if (emphasis !== null) pose = { ...pose, a: [0, 1, 2, 3, 4].map((i) => i === emphasis ? 1 : 0) as unknown as Pose['a'], br: 0 };
       drawFallback(section, pose, emphasis);
     }
@@ -334,7 +363,7 @@ export async function mountStory(root: HTMLElement, lang: Lang, opts: { force2d:
     schedule();
   }) as EventListener);
   syncPlay();
-  root.dataset.storyRenderer = opts.force2d ? '2d' : 'loading';
+  root.dataset.storyRenderer = opts.force2d ? '2d' : 'deferred';
   schedule();
   return {
     dispose() {
@@ -342,6 +371,7 @@ export async function mountStory(root: HTMLElement, lang: Lang, opts: { force2d:
       cancelAnimationFrame(raf);
       off.forEach((dispose) => dispose());
       stage?.dispose();
+      pendingStage?.dispose();
       sections.forEach(clearSlot);
       sections.forEach((section) => section.el.querySelectorAll<HTMLElement>('[data-stance-content]').forEach((item) => { item.hidden = false; }));
       delete root.dataset.storySlot;

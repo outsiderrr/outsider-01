@@ -136,6 +136,7 @@ export function mountLab(root: HTMLElement, lang: Lang, opts: LabOptions = {}): 
   };
 
   let stage: Stage | null = null;
+  let pendingStage: Stage | null = null;
   let svg: SVGSVGElement | null = null;
   // 先显示可操作的线稿。强制 2D 时完全不下载 Three.js，而不是下载后再降级。
   function show2d(finalFallback: boolean) {
@@ -355,14 +356,19 @@ export function mountLab(root: HTMLElement, lang: Lang, opts: LabOptions = {}): 
   setMotion(stroke, stance);
 
   if (!opts.force2d) {
-    void import('../../render3d/stage').then(({ createStage }) => {
+    void import('../../render3d/stage').then(async ({ createStage }) => {
       if (disposed) return;
-      stage = createStage(stageEl, {
+      pendingStage = createStage(stageEl, {
         multiView: !narrowScreen.matches || minisExpanded,
         onLayout: placeMinis,
         label: (key, value) => key === 'speed' ? `${value.toFixed(1)} m/s` : `${T('lab.separation')} ${Math.round(value)}°`,
       });
-      if (!stage) { show2d(true); return; }
+      if (!pendingStage) { show2d(true); return; }
+      pendingStage.setActive(false);
+      await pendingStage.ready;
+      if (disposed) { pendingStage.dispose(); pendingStage = null; return; }
+      stage = pendingStage;
+      pendingStage = null;
       svg?.remove();
       svg = null;
       stage.setActive(visible && !document.hidden);
@@ -372,6 +378,10 @@ export function mountLab(root: HTMLElement, lang: Lang, opts: LabOptions = {}): 
       stage.setPlaying(playing);
       syncMultiView();
     }).catch(() => {
+      pendingStage?.dispose();
+      pendingStage = null;
+      stage?.dispose();
+      stage = null;
       if (!disposed) show2d(true);
     });
   }
@@ -383,6 +393,7 @@ export function mountLab(root: HTMLElement, lang: Lang, opts: LabOptions = {}): 
       abort.abort();
       io.disconnect();
       stage?.dispose();
+      pendingStage?.dispose();
       root.innerHTML = '';
     },
   };
