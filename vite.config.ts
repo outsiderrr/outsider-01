@@ -2,8 +2,8 @@ import { resolve } from 'node:path';
 import { defineConfig } from 'vitest/config';
 import { sitePlugin } from './vite-plugin-site';
 
-export default defineConfig(({ command }) => ({
-  base: command === 'build' ? '/outsider-01/' : '/',
+export default defineConfig(({ command, isPreview }) => ({
+  base: command === 'build' || isPreview ? '/outsider-01/' : '/',
   plugins: [sitePlugin()],
   build: {
     target: 'es2022',

@@ -33,6 +33,8 @@ export async function mountStory(root: HTMLElement, lang: Lang, opts: { force2d:
     return [{ name, el, slot, staticEl, original: staticEl?.innerHTML ?? '', cards: [...el.querySelectorAll<HTMLElement>(name === 'chain' ? '.story-step[data-step]' : 'article[data-phase]')], stance: 'semi', manual: 0, position: 0 }];
   });
   if (!sections.length) return { dispose() {} };
+  // 一次性增强全部阶段：画布迁移不得再改变卡片高度或页面锚点。
+  root.classList.add('story-enhanced');
 
   let disposed = false;
   let stage: Stage | null = null;
@@ -47,6 +49,8 @@ export async function mountStory(root: HTMLElement, lang: Lang, opts: { force2d:
   let tween: StanceTween | null = null;
   let currentTime = 0;
   let fallbackKey = '';
+  let hoveredPart: HTMLElement | null = null;
+  let focusedPart: HTMLElement | null = null;
   const media = matchMedia('(prefers-reduced-motion: reduce)');
   let reduced = media.matches;
   const off: (() => void)[] = [];
@@ -103,6 +107,9 @@ export async function mountStory(root: HTMLElement, lang: Lang, opts: { force2d:
     if (active === next) return;
     if (active) clearSlot(active);
     active = next;
+    hoveredPart = null;
+    const focused = document.activeElement instanceof Element ? document.activeElement.closest<HTMLElement>('.story-step [data-emphasis]') : null;
+    focusedPart = focused && next?.el.contains(focused) ? focused : null;
     tween = null;
     viewKey = '';
     fallbackKey = '';
@@ -172,14 +179,19 @@ export async function mountStory(root: HTMLElement, lang: Lang, opts: { force2d:
     // 手机上舞台占上半屏，文字的焦点落在下方；桌面在中线。
     return focusIndex(centers, innerHeight * (innerWidth < 600 ? 0.77 : 0.52));
   }
-  function drawFallback(section: StorySection, pose: Pose): void {
+  function drawFallback(section: StorySection, pose: Pose, emphasis: number | null): void {
     if (!section.staticEl) return;
-    const key = `${section.name}:${section.stance}:${currentTime.toFixed(3)}:${tween ? 'tween' : ''}`;
+    const key = `${section.name}:${section.stance}:${currentTime.toFixed(3)}:${emphasis}:${tween ? 'tween' : ''}`;
     if (key === fallbackKey && !tween) return;
     fallbackKey = key;
     section.slot.classList.add('is-live-2d');
     const figure = renderFigure(pose, solvePose(pose), { phi: 32, elev: 16, scale: 1.75, cx: 300, groundY: 360 }, { bothArms: section.name === 'backhand' });
     section.staticEl.innerHTML = `<svg viewBox="0 0 600 420" role="img" aria-label="${lang === 'zh' ? '挥拍模型：二维轴测示意' : 'Swing model: 2D axonometric view'}">${figure}</svg>`;
+  }
+  function partEmphasis(element: HTMLElement | null): number | null {
+    if (!element || !active?.el.contains(element) || element.closest('[hidden]')) return null;
+    const value = Number(element.dataset.emphasis);
+    return Number.isInteger(value) && value >= 0 && value <= 4 ? value : null;
   }
   function update(now: number): void {
     raf = 0;
@@ -214,6 +226,9 @@ export async function mountStory(root: HTMLElement, lang: Lang, opts: { force2d:
       key += `:${reduced ? 'static' : state.index}`;
       syncPhase(section, state.index);
     }
+    // 标签高亮优先于滚动强调；滚动更新不会冲掉仍在悬停/聚焦的部位。
+    emphasis = partEmphasis(hoveredPart) ?? partEmphasis(focusedPart) ?? emphasis;
+    root.dataset.storyEmphasis = emphasis === null ? 'none' : String(emphasis);
     const playing = section.name === 'cover' && !paused && !reduced;
     root.dataset.storyTime = currentTime.toFixed(3);
     root.dataset.storyReducedMotion = String(reduced);
@@ -234,12 +249,39 @@ export async function mountStory(root: HTMLElement, lang: Lang, opts: { force2d:
       stage.canvas.dataset.time = currentTime.toFixed(3);
       stage.canvas.dataset.stroke = stroke;
       stage.canvas.dataset.stance = section.stance;
-    } else if (loaded) drawFallback(section, pose);
+    } else if (loaded) {
+      if (emphasis !== null) pose = { ...pose, a: [0, 1, 2, 3, 4].map((i) => i === emphasis ? 1 : 0) as unknown as Pose['a'], br: 0 };
+      drawFallback(section, pose, emphasis);
+    }
     if (playing || tween) schedule();
   }
 
   sections.forEach((section) => {
     if (section.name === 'forehand' || section.name === 'backhand') syncStance(section);
+    const findPart = (target: EventTarget | null): HTMLElement | null => {
+      const part = target instanceof Element ? target.closest<HTMLElement>('.story-step [data-emphasis]') : null;
+      return part && section.el.contains(part) ? part : null;
+    };
+    listen(section.el, 'pointerover', ((event: PointerEvent) => {
+      if (active !== section) return;
+      const part = findPart(event.target);
+      if (part && hoveredPart !== part) { hoveredPart = part; schedule(); }
+    }) as EventListener);
+    listen(section.el, 'pointerout', ((event: PointerEvent) => {
+      if (active !== section || !hoveredPart || findPart(event.target) !== hoveredPart) return;
+      const next = findPart(event.relatedTarget);
+      if (next !== hoveredPart) { hoveredPart = next; schedule(); }
+    }) as EventListener);
+    listen(section.el, 'focusin', ((event: FocusEvent) => {
+      if (active !== section) return;
+      const part = findPart(event.target);
+      if (focusedPart !== part) { focusedPart = part; schedule(); }
+    }) as EventListener);
+    listen(section.el, 'focusout', ((event: FocusEvent) => {
+      if (active !== section || !focusedPart || findPart(event.target) !== focusedPart) return;
+      focusedPart = findPart(event.relatedTarget);
+      schedule();
+    }) as EventListener);
     listen(section.el, 'click', ((event: Event) => {
       const target = event.target instanceof Element ? event.target : null;
       const stanceButton = target?.closest<HTMLElement>('[data-story-stance]');
@@ -304,6 +346,8 @@ export async function mountStory(root: HTMLElement, lang: Lang, opts: { force2d:
       sections.forEach((section) => section.el.querySelectorAll<HTMLElement>('[data-stance-content]').forEach((item) => { item.hidden = false; }));
       delete root.dataset.storySlot;
       delete root.dataset.storyRenderer;
+      delete root.dataset.storyEmphasis;
+      root.classList.remove('story-enhanced');
     },
   };
 }

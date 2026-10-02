@@ -8,6 +8,7 @@ import { FloorAnnotations } from './annotations';
 import { Ball, ballPosition } from './ball';
 import { CameraRig, VIEWS, type ViewName, type ViewSpec, viewDirection } from './cameraRig';
 import { LabelLayer } from './labels';
+import type { LabelBounds } from './labelLayout';
 import { Mannequin } from './mannequin';
 import { OUTLINE_COLOR, OUTLINE_WIDTH } from './materials';
 import { type Palette, onPaletteChange, readPalette } from './palette';
@@ -154,6 +155,8 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
   let width = 1;
   let height = 1;
   let rects: MiniRect[] = [];
+  let mainBounds: LabelBounds = { x: 0, y: 0, w: 1, h: 1 };
+  let topBand = 0;
 
   const scene = new THREE.Scene();
   const rig = new CameraRig(2.6);
@@ -172,7 +175,25 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
   floor.renderOrder = -2;
   scene.add(floor);
 
-  const courtMat = new THREE.MeshBasicMaterial({ color: '#8fa3c4' });
+  // 球场线仍是地面上的真实比例平面，但和网格一样在远处渐隐。
+  // 否则低仰角侧视时，整条 12 米底线会投影成很高的竖条，误像立柱。
+  const courtMat = new THREE.ShaderMaterial({
+    vertexShader: FLOOR_VERT,
+    fragmentShader: /* glsl */ `
+      uniform vec3 uColor;
+      uniform vec2 uCenter;
+      varying vec3 vWorld;
+      void main() {
+        float fade = 1.0 - smoothstep(1.2, 2.2, length(vWorld.xz - uCenter));
+        if (fade < 0.01) discard;
+        gl_FragColor = vec4(uColor, fade);
+        #include <colorspace_fragment>
+      }
+    `,
+    uniforms: { uColor: { value: new THREE.Color('#8fa3c4') }, uCenter: floorMat.uniforms.uCenter },
+    transparent: true,
+    depthWrite: false,
+  });
   const baseline = new THREE.Mesh(new THREE.PlaneGeometry(12, 0.06), courtMat);
   baseline.rotation.x = -Math.PI / 2;
   baseline.position.set(0, 0.001, -0.9);
@@ -248,7 +269,7 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
     OUTLINE_COLOR.value.copy(p.ink);
     floorMat.uniforms.uGrid.value.copy(p.grid);
     floorMat.uniforms.uMajor.value.copy(p.gridMajor);
-    courtMat.color.copy(p.court);
+    courtMat.uniforms.uColor.value.copy(p.court);
     shadowMat.color.copy(p.dark ? new THREE.Color('#000814') : p.ink);
     shadowMat.opacity = p.dark ? 0.35 : 0.13;
     blobMat.color.copy(p.dark ? new THREE.Color('#000814') : p.ink);
@@ -283,6 +304,9 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
   function layout(): void {
     rects = [];
     let bottomBand = 0;
+    // 实验室的说明覆盖层是实测文本高度：英文换行后也为人偶/球拍留空。
+    const hud = container.querySelector<HTMLElement>('.lab__hud');
+    topBand = hud ? Math.min(height * 0.32, hud.offsetTop + hud.offsetHeight + 16) : 0;
     if (multi && width >= 720) {
       const gap = 10;
       let sw = Math.round(Math.min(210, Math.max(132, width * 0.19)));
@@ -301,9 +325,10 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
       bottomBand = sh + 24;
       (['front', 'side', 'top'] as const).forEach((name, i) => rects.push({ name, x: 14 + i * (sw + gap), y: height - sh - 10, w: sw, h: sh }));
     }
-    const shiftPx = rects.length && !bottomBand ? (rects[0].w + 28) / 2 : 0;
-    const heightScale = height / Math.max(1, height - bottomBand);
-    rig.setAspect(width / height, (shiftPx * rig.frameHeight) / height, -(bottomBand * rig.frameHeight * heightScale) / (height * 2), heightScale);
+    const rightBand = rects.length && !bottomBand ? rects[0].w + 28 : 0;
+    mainBounds = { x: 0, y: topBand, w: Math.max(1, width - rightBand), h: Math.max(1, height - topBand - bottomBand) };
+    const heightScale = height / mainBounds.h;
+    rig.setAspect(width / height, (rightBand * rig.frameHeight * heightScale) / (height * 2), ((topBand - bottomBand) * rig.frameHeight * heightScale) / (height * 2), heightScale);
     opts.onLayout?.(rects);
   }
 
@@ -383,9 +408,12 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
   }
 
   function render(now: number): void {
+    const hud = container.querySelector<HTMLElement>('.lab__hud');
+    const nextTop = hud ? Math.min(height * 0.32, hud.offsetTop + hud.offsetHeight + 16) : 0;
+    if (Math.abs(nextTop - topBand) > 0.5) layout();
     if (sceneDirty) updateScene();
     renderView(rig.camera, 0, 0, width, height, 1.5, palette.paper);
-    labels.update(rig.camera, width, height);
+    labels.update(rig.camera, width, height, mainBounds);
     for (const r of rects) {
       const cam = minis[r.name];
       placeMini(r.name, cam, r.w / r.h);
@@ -473,6 +501,7 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
       const next = group !== null && group >= 0 && group <= 4 ? Math.round(group) : null;
       if (emphasis === next) return;
       emphasis = next;
+      canvas.dataset.emphasis = next === null ? 'none' : String(next);
       sceneDirty = true;
       schedule();
     },

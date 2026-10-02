@@ -45,7 +45,7 @@ export function renderPhaseFigure(stroke: Stroke, stance: Stance, phase: PhaseId
 /** 每条曲线独立归一化；线型与文字同时区分，不只依赖颜色。 */
 export function renderChainChart(lang: Lang): string {
   const curves = chainCurves(getSet('forehand', 'semi'), 180);
-  const x0 = 48, x1 = 580, top = 26, bottom = 182;
+  const x0 = 62, x1 = 568, top = 36, bottom = 208;
   const x = (time: number) => x0 + (time - .55) / (1.22 - .55) * (x1 - x0);
   const keys = ['pelvis', 'torso', 'arm', 'head'] as const;
   const colors = ['var(--faint)', 'var(--brake)', 'var(--ink)', 'var(--signal)'];
@@ -56,14 +56,14 @@ export function renderChainChart(lang: Lang): string {
     const peak = peakTime(curves.t, curves[key]);
     return `<path data-curve="${key}" d="${path}" fill="none" stroke="${colors[i]}" stroke-width="${key === 'head' ? 2.8 : 2}" stroke-dasharray="${dashes[i]}"/><circle cx="${n(x(peak))}" cy="${top}" r="3" fill="${colors[i]}"/>`;
   }).join('');
-  return `<svg class="chain-chart" viewBox="0 0 600 240" role="img" aria-label="${escape(t(lang, 'chain.chart.title'))}" data-time-start="0.55" data-time-end="1.22" data-x-start="48" data-x-end="580" xmlns="http://www.w3.org/2000/svg">
-    ${[0, .5, 1].map((v) => `<path d="M${x0} ${n(bottom - v * (bottom - top))}H${x1}" stroke="var(--line)" fill="none"/><text x="36" y="${n(bottom - v * (bottom - top) + 4)}" text-anchor="end" fill="var(--text-2)" font-size="11">${Math.round(v * 100)}%</text>`).join('')}
+  return `<svg class="chain-chart" viewBox="0 0 600 280" role="img" aria-label="${escape(t(lang, 'chain.chart.title'))}" data-time-start="0.55" data-time-end="1.22" data-x-start="${x0}" data-x-end="${x1}" xmlns="http://www.w3.org/2000/svg">
+    ${[0, .5, 1].map((v) => `<path d="M${x0} ${n(bottom - v * (bottom - top))}H${x1}" stroke="var(--line)" fill="none"/><text x="48" y="${n(bottom - v * (bottom - top) + 5)}" text-anchor="end" fill="var(--text-2)" font-size="14">${Math.round(v * 100)}%</text>`).join('')}
     ${paths}
     <path d="M${n(x(.92))} ${top}V${bottom}" stroke="var(--signal)" stroke-dasharray="2 5" opacity=".6"/>
-    <text x="${n(x(.92) + 5)}" y="16" fill="var(--signal-text)" font-size="11">${escape(t(lang, 'chain.chart.contact'))}</text>
-    <line data-chain-cursor x1="48" x2="48" y1="24" y2="188" stroke="var(--text)" stroke-width="1.3"/>
-    ${[.55, .7, .85, 1, 1.22].map((time) => `<text x="${n(x(time))}" y="204" text-anchor="middle" fill="var(--text-2)" font-size="11" font-family="var(--font-mono)">${time.toFixed(2)}</text>`).join('')}
-    <text x="580" y="231" text-anchor="end" fill="var(--text-2)" font-size="11">${escape(t(lang, 'chain.chart.x'))}</text>
+    <text x="${n(x(.92) + 5)}" y="22" fill="var(--signal-text)" font-size="14">${escape(t(lang, 'chain.chart.contact'))}</text>
+    <line data-chain-cursor x1="${x0}" x2="${x0}" y1="30" y2="214" stroke="var(--text)" stroke-width="1.3"/>
+    ${[.55, .7, .85, 1, 1.22].map((time) => `<text x="${n(x(time))}" y="239" text-anchor="${time === 1.22 ? 'end' : 'middle'}" fill="var(--text-2)" font-size="14" font-family="var(--font-mono)">${time.toFixed(2)}</text>`).join('')}
+    <text x="568" y="273" text-anchor="end" fill="var(--text-2)" font-size="14">${escape(t(lang, 'chain.chart.x'))}</text>
   </svg>`;
 }
 

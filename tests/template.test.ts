@@ -2,10 +2,21 @@ import { describe, expect, it } from 'vitest';
 import { renderPage, renderSiteDocument } from '../src/site/template';
 import { renderChainChart, renderPhaseFigure, renderStanceFigure } from '../src/site/figures';
 import { PHASES, STANCES, STROKES } from '../src/model';
+import { siteLanguage } from '../vite-plugin-site';
+import { readFileSync } from 'node:fs';
 
 const shell = '<!doctype html><html lang="zh-CN"><head><title>placeholder</title><!--site-head--></head><body><!--site--><script type="module" src="/src/main.ts"></script></body></html>';
 
 describe('构建时双语页面', () => {
+  it('开发与生产英文入口的查询参数不会改变语言', () => {
+    for (const path of ['/en/', '/en?force2d=1', '/en/?force2d=1', '/en/index.html?force2d=1#lab', '/outsider-01/en/?force2d=1']) {
+      expect(siteLanguage(path)).toBe('en');
+    }
+    expect(siteLanguage('/index.html', '/project/en/index.html')).toBe('en');
+    expect(siteLanguage('/?lang=en')).toBe('zh');
+    expect(siteLanguage('/outsider-01/?force2d=1')).toBe('zh');
+    expect(siteLanguage('/energy/')).toBe('zh');
+  });
   for (const lang of ['zh', 'en'] as const) {
     it(`${lang} 不运行 JavaScript 也包含所有章节、文案与 30 张阶段图`, () => {
       const page = renderPage(lang);
@@ -19,6 +30,7 @@ describe('构建时双语页面', () => {
       expect(page).toContain('data-chain-cursor');
       expect(page).toContain('data-story-slot="cover"');
       expect(page).toContain('id="lab-mount"');
+      for (const group of [0, 1, 2, 3, 4]) expect(page).toContain(`data-emphasis="${group}" tabindex="0"`);
     });
     it(`${lang} 有正确的独立 metadata 和相对语言链接`, () => {
       const html = renderSiteDocument(shell, lang);
@@ -38,6 +50,28 @@ describe('构建时双语页面', () => {
     expect(renderPage('zh')).not.toContain('The short version');
     expect(renderPage('en')).toContain('The short version');
     expect(renderPage('en')).not.toContain('三句话讲完');
+  });
+  it('开发入口不依赖 JavaScript 加载基础样式', () => {
+    for (const path of ['../index.html', '../en/index.html']) {
+      const entry = readFileSync(new URL(path, import.meta.url), 'utf8');
+      expect(entry).toContain('<link rel="stylesheet" href="/src/styles/base.css"');
+      expect(entry).toContain('<link rel="stylesheet" href="/src/styles/site.css"');
+    }
+  });
+  it('所有横向滚动表格都能用键盘聚焦，且有本地化区域名称', () => {
+    for (const lang of ['zh', 'en'] as const) {
+      const regions = renderPage(lang).match(/<div class="table-scroll"[^>]+>/g)!;
+      expect(regions).toHaveLength(3);
+      for (const region of regions) {
+        expect(region).toContain('tabindex="0"');
+        expect(region).toContain('role="region"');
+        expect(region).toMatch(/aria-label="[^"]+"/);
+        expect(region).toContain(lang === 'zh' ? '手' : 'hand');
+      }
+    }
+  });
+  it('两种击球的站位按钮都位于固定舞台内部，滚动时仍可操作', () => {
+    expect(renderPage('zh').match(/<div class="story-visual">\s*<div class="phase-toolbar">/g)).toHaveLength(2);
   });
   it('构建转换不会破坏实验室等不含占位符的入口', () => {
     const untouched = '<html lang="en"><head><title>Lab</title></head><body>Lab</body></html>';

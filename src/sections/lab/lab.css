@@ -59,6 +59,19 @@
   height: 100%;
 }
 
+.lab__stage:focus-visible {
+  outline: 2px solid var(--signal-text);
+  outline-offset: -4px;
+}
+
+.lab__multi-toggle {
+  align-self: flex-start;
+}
+
+.lab__multi-toggle[hidden] {
+  display: none;
+}
+
 .lab__hud {
   position: absolute;
   z-index: 2;
@@ -354,6 +367,10 @@
     min-height: 0;
     border-right: 0;
     border-bottom: 1px solid var(--line-strong);
+  }
+
+  .lab--minis-expanded .lab__stage {
+    aspect-ratio: 3 / 5;
   }
 
   .lab__hud {

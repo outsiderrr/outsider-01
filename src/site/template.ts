@@ -46,21 +46,21 @@ function phaseSection(lang: Lang, stroke: Stroke): string {
       const detailKey = `phases.detail.${stroke}.${stance}.${phase}`;
       const pose = poseAt(getSet(stroke, stance), getSet(stroke, stance).times[index]);
       const parts = ['legs', 'hips', 'trunk', stroke === 'backhand' ? 'arms' : 'arm', 'racket'];
-      const driving = parts.filter((_, i) => pose.a[i] > .3).map((key) => T(`phases.parts.${key}`));
+      const driving = parts.map((key, group) => ({ group, label: T(`phases.parts.${key}`) })).filter(({ group }) => pose.a[group] > .3);
       return `<div data-stance-content="${stance}" class="stance-content${stance === 'semi' ? ' is-active' : ''}">
         <p class="phase-stance label">${escape(T(`stance.${stance}`))}</p>
         <h3>${escape(T(`${phaseKey}.name`))}</h3><p class="phase-cue">${escape(T(`${phaseKey}.cue`))}</p>
         <p class="phase-analogy">${escape(T(`${detailKey}.image`))}</p>
         <p class="phase-detail">${escape(insertNumbers(T(`${detailKey}.detail`), values[stance]))}</p>
-        <div class="power-tags">${driving.length ? `<span class="tag tag--power">${escape(T('phases.power'))} · ${escape(driving.join(' / '))}</span>` : `<span class="tag">${escape(T('phases.relaxed'))}</span>`}${pose.br > .3 ? `<span class="tag tag--brake">${escape(T('phases.brake'))} · ${escape(T('phases.parts.trunk'))} / ${escape(T(`phases.parts.${stroke === 'backhand' ? 'arms' : 'arm'}`))}</span>` : ''}</div>
+        <div class="power-tags">${driving.length ? driving.map(({ group, label }) => `<span class="tag tag--power" data-emphasis="${group}" tabindex="0">${escape(T('phases.power'))} · ${escape(label)}</span>`).join('') : `<span class="tag">${escape(T('phases.relaxed'))}</span>`}${pose.br > .3 ? [2, 3].map((group) => `<span class="tag tag--brake" data-emphasis="${group}" tabindex="0">${escape(T('phases.brake'))} · ${escape(T(`phases.parts.${parts[group]}`))}</span>`).join('') : ''}</div>
         <figure class="phase-static" data-phase-figure="${stroke}-${stance}-${phase}">${renderPhaseFigure(stroke, stance, phase, lang)}<figcaption>${escape(T('phases.viewLabel'))} · ${escape(T(`view.${views[index]}`))}</figcaption></figure>
       </div>`;
     }).join('')}
   </article>`).join('');
   return `<section class="site-section phase-section" id="fig-${number}" data-stroke="${stroke}" aria-labelledby="heading-${stroke}"><div class="section-inner">
     ${heading(lang, T(`phases.${stroke}.fig`), T(`phases.${stroke}.title`), T(`phases.${stroke}.lead`)).replace('class="section-title"', `class="section-title" id="heading-${stroke}"`)}
-    <div class="phase-toolbar"><span class="label">${escape(T('phases.stanceLabel'))}</span><div class="seg" role="group" aria-label="${escape(T('phases.stanceLabel'))}">${STANCES.map((stance) => `<button type="button" data-story-stance="${stance}" aria-pressed="${stance === 'semi'}">${escape(T(`stance.${stance}`))}</button>`).join('')}</div></div>
     <div class="story-layout"><div class="story-steps">${cards}</div><div class="story-visual">
+      <div class="phase-toolbar"><span class="label">${escape(T('phases.stanceLabel'))}</span><div class="seg" role="group" aria-label="${escape(T('phases.stanceLabel'))}">${STANCES.map((stance) => `<button type="button" data-story-stance="${stance}" aria-pressed="${stance === 'semi'}">${escape(T(`stance.${stance}`))}</button>`).join('')}</div></div>
       <div class="stage-caption label"><span>${number} / 05</span><output data-current-phase aria-live="polite">${escape(T(`phase.${stroke}.semi.ready.name`))}</output></div>
       ${stageSlot(lang, stroke, stroke, 'ready')}
       <div class="phase-controls seg" data-phase-controls role="group" aria-label="${escape(T('lab.timeline'))}">${PHASES.map((phase, i) => `<button type="button" data-phase-step="${i}" aria-pressed="${i === 0}" aria-label="${escape(T(`phase.${stroke}.semi.${phase}.name`))}">${String(i + 1).padStart(2, '0')}</button>`).join('')}</div>
@@ -121,7 +121,7 @@ export function renderPage(lang: Lang): string {
           <p class="figure-note">${escape(T('stances.note'))} ${escape(geometryNote)}</p>
         </div>
       </div>
-      <div class="table-scroll"><table class="data-table"><caption>${escape(T('stroke.forehand'))} · ${escape(T('stances.note'))}</caption><thead><tr>${['stance', 'main', 'image', 'sep', 'shift', 'ahead'].map((key) => `<th scope="col">${escape(T(`stances.table.${key}`))}</th>`).join('')}</tr></thead><tbody>${STANCES.map((stance, i) => {
+      <div class="table-scroll" tabindex="0" role="region" aria-label="${escape(T('stroke.forehand'))} · ${escape(T('stances.title'))}"><table class="data-table"><caption>${escape(T('stroke.forehand'))} · ${escape(T('stances.note'))}</caption><thead><tr>${['stance', 'main', 'image', 'sep', 'shift', 'ahead'].map((key) => `<th scope="col">${escape(T(`stances.table.${key}`))}</th>`).join('')}</tr></thead><tbody>${STANCES.map((stance, i) => {
         const s = stanceSnapshot('forehand', i / 2);
         return `<tr><th scope="row">${escape(T(`stance.${stance}`))}</th><td>${escape(T(`stances.rows.${stance}.main`))}</td><td>${escape(T(`stances.rows.${stance}.image`))}</td><td>${s.separation.toFixed(0)}°</td><td>${s.weightShift.toFixed(1)} cm</td><td>${s.contactAhead.toFixed(1)} cm</td></tr>`;
       }).join('')}</tbody></table></div>
@@ -132,7 +132,7 @@ export function renderPage(lang: Lang): string {
       <div id="lab-mount"><div class="lab-static"><figure>${renderPhaseFigure('forehand', 'semi', 'contact', lang)}<figcaption>${escape(T('lab.modelNote'))} · ${escape(T('stroke.forehand'))} · ${escape(T('stance.semi'))}</figcaption></figure><p>${escape(T('lab.subtitle'))}</p><p class="figure-note">${lang === 'zh' ? '启用 JavaScript 后可以播放、切换视角和拖动时间轴；上方所有动作说明与静态图无需 JavaScript。' : 'Enable JavaScript to play, turn the view and scrub the timeline. Every explanation and static drawing above remains available without it.'}</p></div></div>
     </div></section>
     <section id="conclusion" class="site-section conclusion-section"><div class="section-inner">${heading(lang, T('conclusion.fig'), T('conclusion.title'))}
-      <div class="conclusion-grid">${STROKES.map((stroke) => `<div class="table-scroll"><table class="data-table"><caption>${escape(T(`conclusion.${stroke}.title`))}</caption><thead><tr><th scope="col">${escape(T('stances.table.stance'))}</th><th scope="col">${escape(T('stances.when.title'))}</th></tr></thead><tbody>${STANCES.map((stance) => `<tr><th scope="row">${escape(T(`stance.${stance}`))}</th><td>${escape(T(`conclusion.${stroke}.${stance}`))}</td></tr>`).join('')}</tbody></table></div>`).join('')}</div><p class="conclusion-closing">${escape(T('conclusion.closing'))}</p>
+      <div class="conclusion-grid">${STROKES.map((stroke) => `<div class="table-scroll" tabindex="0" role="region" aria-label="${escape(T(`conclusion.${stroke}.title`))} · ${escape(T('stances.when.title'))}"><table class="data-table"><caption>${escape(T(`conclusion.${stroke}.title`))}</caption><thead><tr><th scope="col">${escape(T('stances.table.stance'))}</th><th scope="col">${escape(T('stances.when.title'))}</th></tr></thead><tbody>${STANCES.map((stance) => `<tr><th scope="row">${escape(T(`stance.${stance}`))}</th><td>${escape(T(`conclusion.${stroke}.${stance}`))}</td></tr>`).join('')}</tbody></table></div>`).join('')}</div><p class="conclusion-closing">${escape(T('conclusion.closing'))}</p>
     </div></section>
     <section id="notes" class="site-section notes-section"><div class="section-inner">${heading(lang, lang === 'zh' ? '附注 / REFERENCES' : 'NOTES / REFERENCES', T('notes.title'))}
       <div class="notes-grid"><div><h3>${escape(T('notes.safetyTitle'))}</h3><ol class="safety-list">${[1, 2, 3].map((i) => `<li>${escape(T('notes.s' + i))}</li>`).join('')}</ol><h3>${escape(T('notes.disclaimerTitle'))}</h3><p>${escape(T('notes.disclaimer'))}</p></div><div><h3>${escape(T('notes.sourcesTitle'))}</h3><ol class="source-list"><li>${escape(T('notes.source1'))}<p class="bibliography-pending">${escape(bookPending)}</p></li><li>${escape(T('notes.source2'))}</li></ol></div></div>
