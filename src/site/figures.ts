@@ -48,7 +48,7 @@ export function renderChainChart(lang: Lang): string {
   const x0 = 62, x1 = 568, top = 36, bottom = 208;
   const x = (time: number) => x0 + (time - .55) / (1.22 - .55) * (x1 - x0);
   const keys = ['pelvis', 'torso', 'arm', 'head'] as const;
-  const colors = ['var(--faint)', 'var(--brake)', 'var(--ink)', 'var(--signal)'];
+  const colors = ['var(--text-2)', 'var(--brake)', 'var(--ink)', 'var(--signal)'];
   const dashes = ['2 4', '8 4', '14 4', 'none'];
   const paths = keys.map((key, i) => {
     const max = Math.max(...curves[key]);
