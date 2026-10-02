@@ -3,7 +3,7 @@ const clamp01 = (x: number): number => Math.min(1, Math.max(0, x));
 /** 元素在视口中滚动的进度：元素顶部到达视口顶部时为 0，元素底部到达视口底部时为 1 */
 export function sectionProgress(top: number, height: number, viewport: number): number {
   const span = height - viewport;
-  if (span <= 0) return top <= 0 ? 1 : 0;
+  if (span <= 0) return top < 0 ? 1 : 0;
   return clamp01(-top / span);
 }
 
