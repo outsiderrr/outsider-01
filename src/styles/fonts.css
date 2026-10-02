@@ -1,7 +1,47 @@
-/* 字体全部自托管；思源黑体按 unicode-range 分片，浏览器只下载用到的字 */
-@import '@fontsource-variable/noto-sans-sc/wght.css';
-@import '@fontsource-variable/ibm-plex-sans/wght.css';
-@import '@fontsource/ibm-plex-mono/400.css';
-@import '@fontsource/ibm-plex-mono/500.css';
-@import '@fontsource/ibm-plex-sans-condensed/600.css';
-@import '@fontsource/ibm-plex-sans-condensed/700.css';
+/* 全部自托管。中文子集通过 scripts/subset-fonts.py 可复现生成。 */
+@font-face {
+  font-family: 'Noto Sans SC Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400 900;
+  src: url('../assets/fonts/noto-sans-sc-site-wght.woff2') format('woff2-variations');
+  /* 拉丁字符由 IBM Plex 呈现，中文字体不抢占英文与等宽数字。 */
+  unicode-range: U+2E80-2FFF, U+3000-303F, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FF00-FFEF, U+20000-323AF;
+}
+
+/* 英文字体只保留 latin 的 woff2，不打包其他语系与重复格式。 */
+@font-face {
+  font-family: 'IBM Plex Sans Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400 700;
+  src: url('../assets/fonts/ibm-plex-sans-latin-wght-normal.woff2') format('woff2-variations');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('../assets/fonts/ibm-plex-mono-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url('../assets/fonts/ibm-plex-mono-latin-500-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Sans Condensed';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url('../assets/fonts/ibm-plex-sans-condensed-latin-600-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Sans Condensed';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url('../assets/fonts/ibm-plex-sans-condensed-latin-700-normal.woff2') format('woff2');
+}
