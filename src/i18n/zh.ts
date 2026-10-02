@@ -98,7 +98,7 @@ export const zh = {
       conclusion: '结论',
       notes: '注意事项',
     },
-    theme: { label: '主题', system: '跟随系统', light: '浅色', dark: '深色' },
+    theme: { label: '主题', system: '系统', light: '浅色', dark: '深色' },
     lang: { label: '语言', other: 'EN', otherName: 'English' },
   },
   cover: {

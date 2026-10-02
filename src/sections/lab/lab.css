@@ -45,12 +45,19 @@
 
 .lab__stage {
   position: relative;
+  width: 100%;
+  max-width: 100%;
   min-width: 0;
   aspect-ratio: 16 / 10;
   min-height: 420px;
   overflow: hidden;
   border-right: 1px solid var(--line-strong);
   background: var(--paper);
+}
+
+@media (min-width: 600px) and (max-width: 960px) {
+  .lab .lab__stage { aspect-ratio: 4 / 3; }
+  .lab.lab--minis-expanded .lab__stage { aspect-ratio: 1; }
 }
 
 .lab__stage > svg {

@@ -108,6 +108,20 @@ try {
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
   });
   await check('运行时控制台没有页面错误', async () => assert.deepEqual(errors, []));
+  await check('平板断点的舞台不覆盖控制区，按钮可直接点击', async () => {
+    for (const width of [768, 820, 960, 961, 1024, 1180]) {
+      await page.setViewportSize({ width, height: 1180 });
+      await page.waitForTimeout(180);
+      const rects = await page.evaluate(() => {
+        const rect = s => document.querySelector(s).getBoundingClientRect().toJSON();
+        return { stage: rect('.lab__stage'), panel: rect('.lab__panel'), body: rect('.lab__body') };
+      });
+      assert.ok(rects.stage.right <= rects.body.right + 1, `宽度 ${width} 舞台越出容器`);
+      if (width > 960) assert.ok(rects.stage.right <= rects.panel.left + 1, `宽度 ${width} 舞台覆盖控制区`);
+      else assert.ok(rects.stage.bottom <= rects.panel.top + 1, `宽度 ${width} 舞台覆盖下方面板`);
+      await page.locator('#lab-mount [data-stroke="forehand"]').click({ timeout: 3000 });
+    }
+  });
 } finally {
   await writeFile(resolve(out, 'interaction-audit.json'), JSON.stringify({ base, checks, errors }, null, 2));
   await browser.close();
