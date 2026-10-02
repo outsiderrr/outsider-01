@@ -60,15 +60,16 @@ export class CameraRig {
   private controls: OrbitControls | null = null;
   private controlsChanged = false;
 
-  constructor(private readonly frameHeight = 2.6) {
+  constructor(readonly frameHeight = 2.6) {
     this.camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 40);
     this.apply();
   }
 
-  setAspect(aspect: number): void {
+  /** offset：把画面中心往右挪的世界距离（米），给右侧的三视图小窗让位 */
+  setAspect(aspect: number, offset = 0): void {
     const h = this.frameHeight / 2;
-    this.camera.left = -h * aspect;
-    this.camera.right = h * aspect;
+    this.camera.left = -h * aspect + offset;
+    this.camera.right = h * aspect + offset;
     this.camera.top = h;
     this.camera.bottom = -h;
     this.camera.updateProjectionMatrix();
