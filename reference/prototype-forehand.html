@@ -1,0 +1,261 @@
+<title>网球正手三种站位</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500&family=Noto+Serif+SC:wght@600;700&display=swap">
+<style>
+/* 单栏学习页：标题 → 站位切换 → 五格分解图 → 慢动作舞台 → 讲解表格；中性色略偏硬地球场的灰绿 */
+:root{
+  --bg:#F3F5F1;--surface-2:#FFFFFF;--surface-1:#E5EBE4;
+  --text-primary:#1B2420;--text-secondary:#56615B;--text-muted:#848D87;
+  --border:rgba(27,36,32,.13);--border-strong:rgba(27,36,32,.25);--border-stronger:rgba(27,36,32,.55);
+  --accent:#2D6B58;--radius:8px;
+  --font-display:"Noto Serif SC","Songti SC","STSong",serif;
+  --font-body:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111513;--surface-2:#1A201C;--surface-1:#27312B;
+  --text-primary:#E6ECE7;--text-secondary:#A7B1AA;--text-muted:#78827C;
+  --border:rgba(230,236,231,.12);--border-strong:rgba(230,236,231,.25);--border-stronger:rgba(230,236,231,.6);
+  --accent:#7CC2A6;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111513;--surface-2:#1A201C;--surface-1:#27312B;
+  --text-primary:#E6ECE7;--text-secondary:#A7B1AA;--text-muted:#78827C;
+  --border:rgba(230,236,231,.12);--border-strong:rgba(230,236,231,.25);--border-stronger:rgba(230,236,231,.6);
+  --accent:#7CC2A6;color-scheme:dark}
+body{background:var(--bg);color:var(--text-primary);font-family:var(--font-body);font-size:15px;line-height:1.7}
+.wrap{max-width:780px;margin:0 auto;padding-inline:16px;padding-block:28px 56px}
+h1{font-family:var(--font-display);font-weight:700;font-size:28px;line-height:1.3;margin:0;text-wrap:balance}
+h2{font-family:var(--font-display);font-weight:600;font-size:20px;line-height:1.4;margin:0 0 10px;text-wrap:balance}
+.lede{color:var(--text-secondary);margin:8px 0 0;max-width:62ch}
+section{margin-top:40px}
+button{font:inherit;font-size:14px;line-height:1.4;color:var(--text-primary);background:transparent;border:1px solid var(--border-strong);border-radius:var(--radius);padding:6px 14px;cursor:pointer}
+button:hover{background:var(--surface-1)}
+button:focus-visible,.fh-card:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input[type=range]{accent-color:var(--accent);min-width:0}
+#fh-st{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}
+#fh-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
+@media (max-width:560px){#fh-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.fh-card{background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:6px 10px 10px;cursor:pointer;min-width:0}
+.legend{padding:8px 4px;font-size:12px;color:var(--text-secondary);line-height:1.5;display:flex;flex-direction:column;gap:6px;justify-content:center;min-width:0}
+.legend div{display:flex;gap:8px;align-items:center}
+.stage{margin-top:14px;background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:12px 14px 14px}
+.row{display:flex;align-items:center;gap:10px}
+.meta{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;margin:6px 0 12px;font-size:13px;color:var(--text-secondary)}
+#fh-chain{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+.chip{padding:2px 10px;border-radius:var(--radius);border:1px solid var(--border);color:var(--text-primary)}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px;line-height:1.6}
+th,td{text-align:left;vertical-align:top;padding:9px 10px;border-bottom:1px solid var(--border)}
+thead th{font-weight:500;color:var(--text-secondary);white-space:nowrap;border-bottom-color:var(--border-strong)}
+td:first-child{white-space:nowrap;font-weight:500}
+.note{color:var(--text-secondary);font-size:13px;margin:12px 0 0;max-width:68ch}
+ul.tips{margin:0;padding-left:1.2em;color:var(--text-secondary);font-size:14px}
+ul.tips li+li{margin-top:4px}
+</style>
+
+<div class="wrap">
+<h1>网球正手三种站位</h1>
+<p class="lede">右手正手的五个阶段：准备、引拍、蹬地转髋、击球、随挥。切换站位看脚步和重心怎么变，播放慢动作看力量怎么从腿传到拍头。</p>
+
+<div id="fh-st" role="group" aria-label="选择站位"><button data-s="semi">半开放式</button><button data-s="neutral">中性站位</button><button data-s="open">开放式</button></div>
+<div id="fh-grid"></div>
+
+<div class="stage">
+<div id="fh-title" style="font-weight:500;font-size:15px"></div>
+<div id="fh-cue" style="font-size:13px;color:var(--text-secondary)"></div>
+<svg id="fh-stage" width="100%" viewBox="0 0 654 360" role="img" aria-label="正手慢动作"></svg>
+<div class="meta"><div id="fh-chain"></div><div class="row" style="gap:6px;margin-left:auto">重心<span style="font-size:12px">右脚</span><span style="position:relative;width:80px;height:4px;border-radius:2px;background:var(--border-strong)"><span id="fh-w" style="position:absolute;top:-4px;left:34px;width:12px;height:12px;border-radius:50%;background:var(--text-primary)"></span></span><span style="font-size:12px">左脚</span></div></div>
+<div class="row">
+<button id="fh-play" style="min-width:72px">播放</button>
+<input id="fh-t" type="range" min="0" max="400" step="1" value="0" style="flex:1" aria-label="动作进度">
+<button id="fh-speed">慢动作</button>
+</div>
+</div>
+
+<section>
+<h2 id="fh-phase-h">半开放式的 5 个阶段</h2>
+<div class="tbl"><table><thead><tr><th>阶段</th><th>比喻</th><th>关键动作</th></tr></thead><tbody id="fh-phase"></tbody></table></div>
+</section>
+
+<section>
+<h2>三种站位差在哪</h2>
+<p style="margin:0 0 10px;color:var(--text-secondary);max-width:68ch">书里说正手的力量来自线动量和角动量，换成大白话就是"往前冲的劲"和"原地转的劲"。三种站位就是这两种劲的比例不同。</p>
+<div class="tbl"><table>
+<thead><tr><th>站位</th><th>主要靠什么</th><th>比喻</th><th>引拍时肩髋差</th><th>随挥时左脚承重</th><th>击球点</th></tr></thead>
+<tbody>
+<tr><td>中性站位</td><td>往前冲为主</td><td>扔球</td><td>约 25°</td><td>约 90%</td><td>最靠前，在左脚前方</td></tr>
+<tr><td>半开放式</td><td>两种劲各一半</td><td>推门再转身</td><td>约 44°</td><td>约 75%</td><td>居中</td></tr>
+<tr><td>开放式</td><td>原地转为主</td><td>拧毛巾</td><td>约 52°</td><td>约 65%</td><td>最靠身体侧面</td></tr>
+</tbody></table></div>
+<p class="note">步子迈得越多，身体需要拧的就越少：中性站位两脚已经侧过来，髋自然跟着转了约 75°，所以肩髋差最小。</p>
+</section>
+
+<section>
+<h2>什么时候用哪种</h2>
+<ul class="tips">
+<li>中性站位：球不快、落在身前，你有时间上步。很多教练让初学者从这里练起，"迈步、送重心"的感觉最直观。步子别迈太大，否则重心跟不上，身体会往前扑。</li>
+<li>半开放式：来球速度中等、时间稍紧，是最常用的中间档。</li>
+<li>开放式：球又快又偏、来不及上步，或者打完要马上回到中间。</li>
+<li>不管哪种站位，随挥的"刹车"都要做完，不要击球后硬把拍子停住。书里特别提到，这一步和预防伤病有关。</li>
+</ul>
+<p class="note">书（《网球运动系统训练》图1.5）只画了开放式。半开放和中性两组姿势按常见教学绘制，角度都是估算；火柴人只是示意，不是精确的动作标准。</p>
+</section>
+</div>
+
+<script>
+(function(){
+const R=Math.PI/180,CO='#D85A30',TE='#1D9E75',PU='#7F77DD',T1='var(--text-primary)',T2='var(--text-secondary)',SF='var(--surface-2)';
+const add=(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]],sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]],mul=(a,s)=>[a[0]*s,a[1]*s,a[2]*s];
+const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+const len=a=>Math.hypot(a[0],a[1],a[2]),nrm=a=>mul(a,1/(len(a)||1)),az=d=>[Math.sin(d*R),Math.cos(d*R),0];
+const B={th:46,sh:44,an:8,hip:10,to:50,sw:18,nk:8,hd:10,up:29,fo:26};
+const R0={n:'准备',c:'膝微屈，重心压在前脚掌',lf:[-27,0,-8,0],rf:[27,0,8,0],pel:[0,0,86,0],tor:[0,14,0],hd:0,rh:[12,32,98],rk:[-20,42,90],re:[0.5,-0.2,-1],lh:[-10,34,104],lt:1,le:[-0.5,-0.2,-1],a:[0,0,0,0,0],br:0,w:0.5};
+const ST={
+semi:{name:'半开放式',K:[R0,
+{n:'转体引拍',c:'右脚斜后方蹬住，左脚在斜前方',lf:[-26,28,15,0],rf:[24,-18,50,0],pel:[10,-6,76,58],tor:[102,12,-6],hd:25,rh:[150,55,135],rk:[175,50,0],re:[0.6,-0.3,-0.8],lh:[75,55,135],lt:0,le:[-0.3,0.3,-1],a:[1,0,1,0,0],br:0,w:0.25},
+{n:'蹬地转髋',c:'往前蹬加往里转，两股劲一起',lf:[-26,28,15,0],rf:[24,-18,50,0.2],pel:[5,0,82,22],tor:[62,10,10],hd:25,rh:[128,40,100],rk:[185,-40,0],re:[0.3,-0.5,-1],lh:[5,40,128],lt:0,le:[-0.6,0,-1],a:[1,1,0.15,0,0],br:0,w:0.45},
+{n:'击球',c:'击球点比开放式略靠前',lf:[-26,28,15,0],rf:[24,-18,50,0.6],pel:[0,6,86,-2],tor:[-4,8,6],hd:35,rh:[32,54,104],rk:[85,2,180],re:[0.3,-0.3,-1],lh:[-80,44,112],lt:0,le:[-0.6,0.2,-1],a:[0,0,1,1,1],br:0,w:0.6},
+{n:'随挥',c:'重心移到左脚，右脚跟抬起',lf:[-26,28,15,0],rf:[22,-8,25,1],pel:[-5,9,89,-32],tor:[-72,6,-4],hd:15,rh:[-55,26,150],rk:[-165,38,0],re:[0.1,1,0.1],lh:[-70,30,132],lt:0.8,le:[-0.5,0,-1],a:[0,0,0.2,0,0],br:1,w:0.75}]},
+neutral:{name:'中性站位',K:[R0,
+{n:'引拍上步',c:'侧身，左脚朝网迈一步',lf:[6,48,45,0],rf:[24,-10,80,0],pel:[18,8,78,75],tor:[100,10,-6],hd:20,rh:[150,55,135],rk:[175,50,0],re:[0.6,-0.3,-0.8],lh:[75,55,135],lt:0,le:[-0.3,0.3,-1],a:[1,0,1,0,0],br:0,w:0.25},
+{n:'重心前移',c:'像扔球：从后脚推到前脚',lf:[6,48,45,0],rf:[24,-10,80,0.3],pel:[12,22,80,40],tor:[70,10,10],hd:25,rh:[128,40,100],rk:[185,-40,0],re:[0.3,-0.5,-1],lh:[20,42,128],lt:0,le:[-0.6,0,-1],a:[1,1,0.15,0,0],br:0,w:0.55},
+{n:'击球',c:'击球点更靠前，在前脚前方',lf:[6,48,45,0],rf:[24,-10,80,0.7],pel:[8,32,84,10],tor:[5,8,6],hd:35,rh:[30,54,104],rk:[85,2,180],re:[0.3,-0.3,-1],lh:[-80,44,112],lt:0,le:[-0.6,0.2,-1],a:[0,0,1,1,1],br:0,w:0.8},
+{n:'随挥',c:'重心压在左脚，右脚尖点地',lf:[6,48,45,0],rf:[20,0,40,1],pel:[2,36,88,-25],tor:[-65,6,-4],hd:15,rh:[-55,26,150],rk:[-165,38,0],re:[0.1,1,0.1],lh:[-70,30,132],lt:0.8,le:[-0.5,0,-1],a:[0,0,0.2,0,0],br:1,w:0.9}]},
+open:{name:'开放式',K:[R0,
+{n:'转体引拍',c:'拧毛巾：肩比髋多转',bk:'≈ 书中图1.5a',lf:[-36,10,-5,0],rf:[30,-6,35,0],pel:[12,-2,75,48],tor:[100,12,-6],hd:25,rh:[150,55,135],rk:[175,50,0],re:[0.6,-0.3,-0.8],lh:[75,55,135],lt:0,le:[-0.3,0.3,-1],a:[1,0,1,0,0],br:0,w:0.25},
+{n:'蹬地转髋',c:'髋先转回，拍头落到球下',lf:[-36,10,-5,0],rf:[30,-6,35,0.3],pel:[8,0,82,15],tor:[60,10,10],hd:25,rh:[128,40,100],rk:[185,-40,0],re:[0.3,-0.5,-1],lh:[5,40,128],lt:0,le:[-0.6,0,-1],a:[1,1,0.15,0,0],br:0,w:0.35},
+{n:'击球',c:'身体正对网，在身前侧击球',bk:'≈ 书中图1.5b',lf:[-36,10,-5,0],rf:[30,-6,35,0.6],pel:[3,3,86,-8],tor:[-6,8,6],hd:35,rh:[38,52,104],rk:[88,2,180],re:[0.3,-0.3,-1],lh:[-80,44,112],lt:0,le:[-0.6,0.2,-1],a:[0,0,1,1,1],br:0,w:0.5},
+{n:'随挥',c:'拍子绕到左肩，肩背刹车',lf:[-36,10,-5,0],rf:[26,-2,20,1],pel:[-4,5,89,-38],tor:[-75,6,-4],hd:15,rh:[-55,26,150],rk:[-165,38,0],re:[0.1,1,0.1],lh:[-70,30,132],lt:0.8,le:[-0.5,0,-1],a:[0,0,0.2,0,0],br:1,w:0.65}]}
+};
+const RD=['守门员等点球','膝盖微弯，重心放在前脚掌，左手托住拍颈。三种站位都一样'];
+const DETAIL={
+semi:[RD,['斜着拉开的弓','右脚在斜后方踩住、承重，左脚在斜前方。肩转约 100°，髋转约 60°，肩髋差约 44°'],['推门再转身','右腿往前上方蹬，同时髋转回来，既有往前的劲也有转的劲'],['鞭梢"啪"地炸响','胸口对网，击球点在开放式和中性之间，略靠前'],['踩刹车','重心大部分到了左脚，右脚跟抬起，拍子绕到左肩']],
+neutral:[RD,['扔球前先侧身','先侧身转肩（约 100°），左脚朝球网方向迈出去。两脚一侧过来，髋就跟着转了约 75°'],['扔球时把体重送出去','左脚落地后，重心从右脚压向左脚，髋顺势往回转。这一步是"往前冲的劲"的主要来源'],['鞭梢"啪"地炸响','重心大约八成在左脚，击球点在左脚前方，是三种站位里最靠前的'],['踩刹车','重心几乎全在左脚，右脚尖点地，拍子绕到左肩']],
+open:[RD,['拧毛巾、拉弓','肩转约 100°，髋只转约 50°，右腿下蹲承重，左手伸出指向来球（书中图1.5a）'],['甩鞭子时手柄先动','右脚蹬地，髋先转回来，肩和拍子还被拖在后面，拍头落到球的下方'],['鞭梢"啪"地炸响','胸口正对球网，在身体前侧方击球（书中图1.5b）'],['踩刹车','拍子绕到左肩，右肩转到前面，右脚跟抬起；肩背肌肉负责给手臂减速']]
+};
+let cur='semi',K=ST.semi.K;
+const TK=[0,0.55,0.8,0.92,1.22],TEND=TK[4],STEP=new Set(['lf','rf','a','br','w','lt']);
+function slope(p0,p1,p2,d0,d1,k){const s0=(p1-p0)/d0,s1=(p2-p1)/d1,m=(s0*d1+s1*d0)/(d0+d1);return(k===3&&s0*s1>0&&Math.abs(s0)>Math.abs(m))?s0:m;}
+function ip(v,i,s,d,st){const a=v[i],b=v[i+1];if(a===undefined||typeof a==='string')return s<0.5?a:b;if(Array.isArray(a))return a.map((_,j)=>ip(v.map(x=>x[j]),i,s,d,st));if(typeof a==='object'){const o={};for(const q in a)o[q]=ip(v.map(x=>x[q]),i,s,d,st||STEP.has(q));return o;}if(st)return a+(b-a)*s*s*(3-2*s);const tg=k=>(k===0||k===4)?0:slope(v[k-1],v[k],v[k+1],TK[k]-TK[k-1],TK[k+1]-TK[k],k),s2=s*s,s3=s2*s;return(2*s3-3*s2+1)*a+(s3-2*s2+s)*d*tg(i)+(-2*s3+3*s2)*b+(s3-s2)*d*tg(i+1);}
+function poseAt(u){u=Math.min(TEND,Math.max(0,u));let i=0;while(i<3&&u>TK[i+1])i++;const d=TK[i+1]-TK[i],k=(u-TK[i])/d,p=ip(K,i,k,d,false);['lf','rf'].forEach(q=>{const a=K[i][q],b=K[i+1][q],dd=Math.hypot(b[0]-a[0],b[1]-a[1]);p[q]=p[q].slice(0,4);p[q][4]=Math.sin(Math.PI*k)*Math.min(10,dd*0.3);});return p;}
+function ik(A,C,a,b,h){let d=sub(C,A),L=len(d);const m=a+b-0.5;if(L>m){C=add(A,mul(d,m/L));d=sub(C,A);L=m;}const n=mul(d,1/L),x=(a*a-b*b+L*L)/(2*L),hh=Math.sqrt(Math.max(0,a*a-x*x));let v=nrm(sub(h,mul(n,dot(h,n))));return[add(add(A,mul(n,x)),mul(v,hh)),C];}
+function solve(p){
+const P=p.pel.slice(0,3),py=p.pel[3]*R,rp=[Math.cos(py),-Math.sin(py),0];
+const hL=add(P,mul(rp,-B.hip)),hR=add(P,mul(rp,B.hip));
+const ty=p.tor[0]*R,pi=p.tor[1]*R,ro=p.tor[2]*R,ft=[Math.sin(ty),Math.cos(ty),0],rt=[Math.cos(ty),-Math.sin(ty),0],u=[0,0,1];
+const u1=add(mul(u,Math.cos(pi)),mul(ft,Math.sin(pi))),u2=add(mul(u1,Math.cos(ro)),mul(rt,Math.sin(ro))),r2=sub(mul(rt,Math.cos(ro)),mul(u1,Math.sin(ro)));
+const S=add(P,mul(u2,B.to)),sL=add(S,mul(r2,-B.sw)),sR=add(S,mul(r2,B.sw)),H=add(S,mul(u2,B.nk+B.hd)),nose=add(H,mul(az(p.hd),B.hd*0.95));
+const ft2=f=>{const d=az(f[2]),h=f[3]||0,up=f[4]||0;return{an:[f[0]-d[0]*h*4,f[1]-d[1]*h*4,B.an+h*9+up],to:[f[0]+d[0]*15,f[1]+d[1]*15,1.5+up],d:d};};
+const FL=ft2(p.lf),FR=ft2(p.rf);
+const[kL,aL]=ik(hL,FL.an,B.th,B.sh,add(FL.d,[0,0,0.15])),[kR,aR]=ik(hR,FR.an,B.th,B.sh,add(FR.d,[0,0,0.15]));
+const cyl=c=>[P[0]+c[1]*Math.sin(c[0]*R),P[1]+c[1]*Math.cos(c[0]*R),c[2]];
+const[eR,wR]=ik(sR,cyl(p.rh),B.up,B.fo,p.re);
+const el=p.rk[1]*R,dir=[Math.cos(el)*Math.sin(p.rk[0]*R),Math.cos(el)*Math.cos(p.rk[0]*R),Math.sin(el)];
+let e1=cross(dir,[0,0,1]);e1=len(e1)<0.05?[1,0,0]:nrm(e1);const e2=cross(e1,dir),rr=p.rk[2]*R,fn=add(mul(e1,Math.cos(rr)),mul(e2,Math.sin(rr))),w=cross(dir,fn);
+const RC=add(wR,mul(dir,47)),throat=add(wR,mul(dir,28));
+const lt=add(mul(cyl(p.lh),1-p.lt),mul(throat,p.lt));
+const[eL,wL]=ik(sL,lt,B.up,B.fo,p.le);
+const head=[];for(let i=0;i<24;i++){const a=i/24*Math.PI*2;head.push(add(add(RC,mul(dir,17*Math.cos(a))),mul(w,12.5*Math.sin(a))));}
+return{P,hL,hR,S,sL,sR,H,nose,u2,kL,aL,kR,aR,FL,FR,eR,wR,eL,wL,dir,RC,fn,head};
+}
+const f=v=>v.toFixed(1);
+function cam(c){const cp=Math.cos(c.phi*R),sp=Math.sin(c.phi*R),ce=Math.cos(c.e*R),se=Math.sin(c.e*R);return q=>{const sx=-q[0]*cp+q[1]*sp,dp=q[0]*sp+q[1]*cp,sy=q[2]*ce-dp*se;return[c.cx+c.s*sx,c.gy-c.s*sy,dp];};}
+function L(A,B2,col,w,op){return`<line x1="${f(A[0])}" y1="${f(A[1])}" x2="${f(B2[0])}" y2="${f(B2[1])}" stroke="${col}" stroke-width="${w}" stroke-linecap="round"${op<1?` stroke-opacity="${op.toFixed(2)}"`:''}/>`;}
+function render(p,c,o){
+const J=solve(p),pr=cam(c),s=c.s,it=[];
+const limb=(a,b,base,w,act,br)=>{const A=pr(a),Bq=pr(b);let str=L(A,Bq,base,w,1);if(act>0.03)str+=L(A,Bq,CO,w,Math.min(1,act));if(br>0.03)str+=L(A,Bq,TE,w,Math.min(1,br));it.push({d:(A[2]+Bq[2])/2,s:str});};
+const a=p.a;
+limb(J.hL,J.kL,T2,4.4*s,a[0],0);limb(J.kL,J.aL,T2,4*s,a[0],0);limb(J.aL,J.FL.to,T2,3.2*s,0,0);
+limb(J.hR,J.kR,T1,4.4*s,a[0],0);limb(J.kR,J.aR,T1,4*s,a[0],0);limb(J.aR,J.FR.to,T1,3.2*s,0,0);
+{const q=[J.hL,J.hR,J.sR,J.sL].map(pr),d=q.reduce((m,v)=>m+v[2],0)/4,pts=q.map(v=>f(v[0])+','+f(v[1])).join(' ');
+let str=`<polygon points="${pts}" fill="${SF}" stroke="${T1}" stroke-width="${f(1.6*s)}" stroke-linejoin="round"/>`;
+if(a[2]>0.03)str+=`<polygon points="${pts}" fill="${CO}" fill-opacity="${(a[2]*0.45).toFixed(2)}" stroke="none"/>`;
+str+=L(q[0],q[1],T2,3.6*s,1);if(a[1]>0.03)str+=L(q[0],q[1],CO,3.6*s,a[1]);
+str+=L(q[3],q[2],PU,3.2*s,1);if(p.br>0.03)str+=L(q[3],q[2],TE,3.2*s,p.br);
+it.push({d:d,s:str});}
+limb(J.S,add(J.H,mul(J.u2,-B.hd)),T1,3*s,0,0);
+{const Hh=pr(J.H),N=pr(J.nose);it.push({d:Hh[2],s:`<circle cx="${f(Hh[0])}" cy="${f(Hh[1])}" r="${f(B.hd*s)}" fill="${SF}" stroke="${T1}" stroke-width="${f(1.6*s)}"/>`});it.push({d:N[2]+0.01,s:`<circle cx="${f(N[0])}" cy="${f(N[1])}" r="${f(2*s)}" fill="${T1}"/>`});}
+limb(J.sL,J.eL,T2,3.6*s,0,0);limb(J.eL,J.wL,T2,3.2*s,0,0);
+limb(J.sR,J.eR,T1,3.8*s,a[3],p.br);limb(J.eR,J.wR,T1,3.4*s,a[3],p.br);
+{const A=pr(add(J.wR,mul(J.dir,-6))),Bq=pr(add(J.wR,mul(J.dir,30)));it.push({d:(A[2]+Bq[2])/2,s:L(A,Bq,T1,2.6*s,1)});}
+{const q=J.head.map(pr),d=pr(J.RC)[2],pts=q.map(v=>f(v[0])+','+f(v[1])).join(' ');
+let str=`<polygon points="${pts}" fill="${T1}" fill-opacity="0.07" stroke="${T1}" stroke-width="${f(1.7*s)}" stroke-linejoin="round"/>`;
+if(a[4]>0.03)str+=`<polygon points="${pts}" fill="none" stroke="${CO}" stroke-opacity="${Math.min(1,a[4]).toFixed(2)}" stroke-width="${f(1.9*s)}" stroke-linejoin="round"/>`;
+it.push({d:d,s:str});}
+if(o.ball){const b=pr(o.ball.p);it.push({d:b[2]+(o.ball.front?50:0),s:`<circle cx="${f(b[0])}" cy="${f(b[1])}" r="${f(3.6*s)}" fill="#C8DA3A" stroke="#7E8A1C" stroke-width="1" fill-opacity="${o.ball.op}" stroke-opacity="${o.ball.op}"/>`});}
+it.sort((x,y)=>x.d-y.d);
+let out='';
+const g=pr([(p.lf[0]+p.rf[0])/2,(p.lf[1]+p.rf[1])/2,0]);
+out+=`<ellipse cx="${f(g[0])}" cy="${f(g[1])}" rx="${f(62*s)}" ry="${f(11*s)}" fill="${T1}" fill-opacity="0.05"/>`;
+{const wg=pr([p.rf[0]+(p.lf[0]-p.rf[0])*p.w,p.rf[1]+(p.lf[1]-p.rf[1])*p.w,0]);out+=`<circle cx="${f(wg[0])}" cy="${f(wg[1])}" r="${f(7*s)}" fill="none" stroke="${T1}" stroke-opacity="0.35" stroke-width="1"/><circle cx="${f(wg[0])}" cy="${f(wg[1])}" r="${f(3.2*s)}" fill="${T1}"/>`;}
+if(o.path){const pts=o.path.map(q=>{const v=pr(q);return f(v[0])+','+f(v[1]);}).join(' ');out+=`<polyline points="${pts}" fill="none" stroke="${T2}" stroke-width="1" stroke-dasharray="3 4" stroke-opacity="0.7"/>`;}
+if(o.trail&&o.trail.length>1){for(let i=1;i<o.trail.length;i++){const A=pr(o.trail[i-1]),Bq=pr(o.trail[i]);out+=L(A,Bq,CO,2.2,i/o.trail.length*0.8);}}
+out+=it.map(x=>x.s).join('');
+if(o.inset)out+=inset(p,o.inset);
+return out;
+}
+function inset(p,o){
+const{cx,cy,r,big}=o,fs=big?13:11;
+const ln=(yaw,l)=>[Math.cos(yaw*R)*l,Math.sin(yaw*R)*l];
+const h=ln(p.pel[3],r*0.55),sh=ln(p.tor[0],r*0.8),nz=[Math.sin(p.hd*R)*r*0.2,-Math.cos(p.hd*R)*r*0.2];
+const x=Math.round(p.tor[0]-p.pel[3]);
+let s=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--border-strong)" stroke-width="0.8"/>`;
+const kk=r/60;[[p.lf,0],[p.rf,1]].forEach(([q,solid])=>{const x2=cx+(q[0]-p.pel[0])*kk,y2=cy-(q[1]-p.pel[1])*kk;s+=`<ellipse cx="${f(x2)}" cy="${f(y2)}" rx="${f(r*0.08)}" ry="${f(r*0.19)}" transform="rotate(${f(q[2])} ${f(x2)} ${f(y2)})" fill="${solid?T2:'none'}" stroke="${T2}" stroke-width="1"/>`;});
+s+=`<line x1="${f(cx-h[0])}" y1="${f(cy-h[1])}" x2="${f(cx+h[0])}" y2="${f(cy+h[1])}" stroke="${T2}" stroke-width="${big?5:3.5}" stroke-linecap="round"/>`;
+s+=`<line x1="${f(cx-sh[0])}" y1="${f(cy-sh[1])}" x2="${f(cx+sh[0])}" y2="${f(cy+sh[1])}" stroke="${PU}" stroke-width="${big?3.5:2.5}" stroke-linecap="round"/>`;
+s+=`<circle cx="${f(cx+sh[0])}" cy="${f(cy+sh[1])}" r="${big?4:2.8}" fill="${PU}"/>`;
+s+=`<circle cx="${cx}" cy="${cy}" r="${f(r*0.16)}" fill="${SF}" stroke="${T1}" stroke-width="1"/><circle cx="${f(cx+nz[0])}" cy="${f(cy+nz[1])}" r="${big?2:1.5}" fill="${T1}"/>`;
+s+=`<path d="M${cx-4} ${cy-r-5} L${cx} ${cy-r-11} L${cx+4} ${cy-r-5}" fill="none" stroke="${T2}" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>`;
+s+=`<text x="${cx+8}" y="${cy-r-5}" style="font-size:${fs}px;fill:var(--text-secondary)">球网</text>`;
+s+=`<text x="${cx}" y="${cy+r+15+(big?2:0)}" text-anchor="middle" style="font-size:${fs}px;fill:var(--text-secondary)">肩髋差 ${Math.abs(x)}°</text>`;
+return s;
+}
+let path=[];function computePath(){const a=[];for(let i=0;i<=160;i++)a.push(solve(poseAt(TK[1]+(TEND-TK[1])*i/160)).RC);return a;}
+const PC={phi:30,e:12,s:0.8,cx:112,gy:228},SC={phi:30,e:12,s:1.4,cx:300,gy:344};
+const grid=document.getElementById('fh-grid');
+const sw=(c,dash)=>`<svg width="22" height="10" style="flex:none" aria-hidden="true"><line x1="2" y1="5" x2="20" y2="5" stroke="${c}" stroke-width="${dash?1.2:4}" stroke-linecap="round"${dash?' stroke-dasharray="3 3"':''}/></svg>`;
+const LEG=`<div class="legend">
+<div>${sw(CO)}正在发力或蓄力的部位</div>
+<div>${sw(TE)}正在踩刹车减速的部位</div>
+<div>${sw(PU)}肩线（右端圆点是右肩）</div>
+<div>${sw('var(--text-secondary)')}髋线</div>
+<div>${sw('var(--text-secondary)',1)}拍头走过的路线</div>
+<div><svg width="22" height="10" style="flex:none" aria-hidden="true"><circle cx="11" cy="5" r="3.5" fill="var(--text-primary)"/></svg>地上的黑点：重心落在哪</div>
+<div style="color:var(--text-muted);font-size:12px;display:block">右上角小圆是从头顶往下看，空心脚印是左脚、实心是右脚。点任一张图，下面的大图跳到那一刻。</div></div>`;
+function buildPanels(){
+let cards='';
+K.forEach((k,i)=>{
+const ball=i===3?{p:add(solve(k).RC,mul(solve(k).fn,5)),op:1,front:1}:null;
+cards+=`<div class="fh-card" data-i="${i}" role="button" tabindex="0"><svg viewBox="0 0 220 240" width="100%" role="img" aria-label="${ST[cur].name} 阶段${i+1} ${k.n}">${render(k,PC,{path:path,inset:{cx:188,cy:40,r:22},ball:ball})}</svg><div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px;flex-wrap:wrap"><span style="font-size:14px;font-weight:500">${i+1} · ${k.n}</span>${k.bk?`<span style="font-size:12px;color:var(--text-muted)">${k.bk}</span>`:''}</div><div style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin-top:2px">${k.c}</div></div>`;
+});
+grid.innerHTML=cards+LEG;
+grid.querySelectorAll('.fh-card').forEach(c=>{const go=()=>{setPlay(false);t=TK[+c.dataset.i];draw();};c.onclick=go;c.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go();}};});
+}
+const stage=document.getElementById('fh-stage'),chain=document.getElementById('fh-chain'),slider=document.getElementById('fh-t'),bp=document.getElementById('fh-play'),bs=document.getElementById('fh-speed');
+const CN=['腿','髋','躯干','肩臂','球拍'];
+chain.innerHTML='<span style="margin-right:2px">发力链</span>'+CN.map((n,i)=>`<span id="fh-c${i}" class="chip">${n}</span>`+(i<4?'<span aria-hidden="true" style="color:var(--text-muted)">›</span>':'')).join('');
+let t=0,playing=false,slow=true,last=0;
+function ballAt(u){const k=solve(K[3]),C=add(k.RC,mul(k.fn,5)),dt=TK[3]-u;if(dt>0&&dt<=0.1)return{p:add(C,mul([0.12,1,0.1],dt*1500)),op:1,front:1};if(dt<=0&&dt>-0.15)return{p:add(C,mul([-0.05,1,0.3],-dt*1800)),op:Math.max(0,1+dt/0.15),front:1};return null;}
+function draw(){
+const p=poseAt(t);let i=0;for(let j=1;j<5;j++)if(Math.abs(t-TK[j])<Math.abs(t-TK[i]))i=j;const k=K[i];
+const trail=[];const t0=Math.max(0,t-0.3);for(let q=t0;q<=t+1e-6;q+=0.01)trail.push(solve(poseAt(q)).RC);
+stage.innerHTML=render(p,SC,{path:path,trail:trail,inset:{cx:590,cy:62,r:40,big:1},ball:ballAt(t)});
+document.getElementById('fh-title').textContent=`${ST[cur].name} · ${i+1} ${k.n}`;
+document.getElementById('fh-cue').textContent=k.c;
+for(let j=0;j<5;j++){const el=document.getElementById('fh-c'+j);const ac=Math.min(1,p.a[j]),br=(j===3)?p.br:0;el.style.background=br>ac?`color-mix(in srgb, ${TE} ${Math.round(br*45)}%, transparent)`:`color-mix(in srgb, ${CO} ${Math.round(ac*45)}%, transparent)`;}
+slider.value=Math.round(t/TEND*400);document.getElementById('fh-w').style.left=Math.round(p.w*68)+'px';
+document.querySelectorAll('.fh-card').forEach(c=>{c.style.borderColor=(+c.dataset.i===i)?'var(--border-stronger)':'var(--border)';});
+}
+let clock=0;
+function step(ts){if(!playing)return;const dt=Math.min(0.05,(ts-last)/1000);last=ts;clock+=dt/(slow?5:1);if(clock>TEND+(slow?0.2:0.7)){clock=0;}t=Math.min(clock,TEND);draw();requestAnimationFrame(step);}
+function setPlay(v){playing=v;bp.textContent=v?'暂停':'播放';if(v){clock=t>=TEND-1e-4?0:t;last=performance.now();requestAnimationFrame(step);}}
+bp.onclick=()=>setPlay(!playing);
+bs.onclick=()=>{slow=!slow;bs.textContent=slow?'慢动作':'真实速度';};
+slider.oninput=()=>{setPlay(false);t=slider.value/400*TEND;draw();};
+const btns=[...document.querySelectorAll('#fh-st button')];
+function fillPhase(){document.getElementById('fh-phase-h').textContent=`${ST[cur].name}的 5 个阶段`;document.getElementById('fh-phase').innerHTML=DETAIL[cur].map((d,i)=>`<tr><td>${i+1} ${K[i].n}</td><td>${d[0]}</td><td>${d[1]}</td></tr>`).join('');}
+function setStance(v){cur=v;K=ST[v].K;path=computePath();buildPanels();fillPhase();btns.forEach(b=>{const on=b.dataset.s===v;b.setAttribute('aria-pressed',on?'true':'false');b.style.borderColor=on?'var(--accent)':'';b.style.background=on?'var(--surface-1)':'';b.style.fontWeight=on?'500':'400';});draw();}
+btns.forEach(b=>b.onclick=()=>setStance(b.dataset.s));
+setStance('semi');
+})();
+</script>
