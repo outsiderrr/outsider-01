@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { FOREHAND } from '../src/model/keyframes/forehand';
+import { SETS } from '../src/model';
 import { hermite, poseAt, segmentAt, tangent } from '../src/model/interp';
-import { STANCES } from '../src/model/types';
+import { STANCES, STROKES } from '../src/model/types';
 
 describe('hermite / tangent', () => {
   it('首尾切线为 0', () => {
@@ -29,10 +29,10 @@ describe('hermite / tangent', () => {
   });
 });
 
-describe('poseAt（正手）', () => {
-  for (const stance of STANCES) {
-    const set = FOREHAND[stance];
-    it(`${stance}：关键帧时刻与关键帧一致，脚不抬起`, () => {
+describe('poseAt', () => {
+  for (const stroke of STROKES) for (const stance of STANCES) {
+    const set = SETS[stroke][stance];
+    it(`${stroke}/${stance}：关键帧时刻与关键帧一致，脚不抬起`, () => {
       set.frames.forEach((k, i) => {
         const p = poseAt(set, set.times[i]);
         k.pel.forEach((v, j) => expect(p.pel[j]).toBeCloseTo(v, 6));
@@ -46,7 +46,7 @@ describe('poseAt（正手）', () => {
         expect(p.lift[1]).toBeCloseTo(0, 6);
       });
     });
-    it(`${stance}：中间关键帧两侧速度连续`, () => {
+    it(`${stroke}/${stance}：中间关键帧两侧速度连续`, () => {
       const h = 1e-5;
       for (let k = 1; k < set.times.length - 1; k++) {
         const t = set.times[k];
@@ -59,7 +59,7 @@ describe('poseAt（正手）', () => {
     });
   }
   it('移动中的脚在两帧中间抬起', () => {
-    const set = FOREHAND.neutral; // 左脚在第 0→1 帧向前迈步
+    const set = SETS.forehand.neutral; // 左脚在第 0→1 帧向前迈步
     const p = poseAt(set, set.times[1] / 2);
     expect(p.lift[0]).toBeGreaterThan(5);
   });

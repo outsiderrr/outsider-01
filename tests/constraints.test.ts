@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BODY } from '../src/model/body';
-import { FOREHAND } from '../src/model/keyframes/forehand';
+import { SETS } from '../src/model';
 import { poseAt } from '../src/model/interp';
 import { chainCurves, peakTime, racketSpeed } from '../src/model/metrics';
 import { solvePose } from '../src/model/solve';
@@ -114,4 +114,6 @@ export function checkConstraints(label: string, set: KeyframeSet) {
   });
 }
 
-for (const [stance, set] of Object.entries(FOREHAND)) checkConstraints(`forehand/${stance}`, set);
+for (const [stroke, byStance] of Object.entries(SETS)) {
+  for (const [stance, set] of Object.entries(byStance)) checkConstraints(`${stroke}/${stance}`, set);
+}
