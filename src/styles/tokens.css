@@ -1,0 +1,98 @@
+/* 两套主题：浅色"实验网格纸"、深色"蓝图纸"。组件只用这里的令牌。 */
+:root {
+  --paper: #f1f3f5;
+  --paper-2: #e7ecf2;
+  --panel: #f8fafc;
+  --grid: #dce3ec;
+  --grid-major: #c7d2e0;
+  --ink: #1d3f94;
+  --text: #0e1b33;
+  --text-2: #4a5a78;
+  --faint: #9fb2cc;
+  --line: rgba(29, 63, 148, 0.16);
+  --line-strong: rgba(29, 63, 148, 0.42);
+  --signal: #ee4f17;
+  --signal-text: #c23a0c;
+  --brake: #4c7bd9;
+  --ball: #d4e84a;
+  --fig-fill: #fbfcfd;
+  --fig-shade: #c9d4e3;
+  --court-line: #8fa3c4;
+  --on-ink: #f8fafc;
+
+  --font-text: 'IBM Plex Sans Variable', 'Noto Sans SC Variable', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --font-display: 'IBM Plex Sans Condensed', 'Noto Sans SC Variable', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'IBM Plex Mono', 'Noto Sans SC Variable', ui-monospace, Menlo, monospace;
+
+  --fs-12: 0.75rem;
+  --fs-14: 0.875rem;
+  --fs-16: 1rem;
+  --fs-18: 1.125rem;
+  --fs-22: clamp(1.25rem, 1.1rem + 0.5vw, 1.375rem);
+  --fs-28: clamp(1.5rem, 1.25rem + 1vw, 1.75rem);
+  --fs-40: clamp(1.875rem, 1.4rem + 2vw, 2.5rem);
+  --fs-64: clamp(2.5rem, 1.6rem + 4vw, 4rem);
+  --fs-96: clamp(3rem, 1.4rem + 7vw, 6rem);
+
+  --gap-1: 4px;
+  --gap-2: 8px;
+  --gap-3: 12px;
+  --gap-4: 16px;
+  --gap-6: 24px;
+  --gap-8: 32px;
+  --gap-12: 48px;
+  --gap-16: 64px;
+  --radius: 2px;
+  --grid-size: 24px;
+  --ease-emph: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --paper: #0b1a33;
+    --paper-2: #0f2141;
+    --panel: #0e1f3d;
+    --grid: #15294a;
+    --grid-major: #213a63;
+    --ink: #dce6f6;
+    --text: #eef2f8;
+    --text-2: #a9b7cf;
+    --faint: #4a6390;
+    --line: rgba(220, 230, 246, 0.14);
+    --line-strong: rgba(220, 230, 246, 0.42);
+    --signal: #ff6a33;
+    --signal-text: #ff8a5c;
+    --brake: #7fa6f2;
+    --ball: #d4e84a;
+    --fig-fill: #15305a;
+    --fig-shade: #0b1d3a;
+    --court-line: #5f7db3;
+    --on-ink: #0b1a33;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --paper: #0b1a33;
+  --paper-2: #0f2141;
+  --panel: #0e1f3d;
+  --grid: #15294a;
+  --grid-major: #213a63;
+  --ink: #dce6f6;
+  --text: #eef2f8;
+  --text-2: #a9b7cf;
+  --faint: #4a6390;
+  --line: rgba(220, 230, 246, 0.14);
+  --line-strong: rgba(220, 230, 246, 0.42);
+  --signal: #ff6a33;
+  --signal-text: #ff8a5c;
+  --brake: #7fa6f2;
+  --ball: #d4e84a;
+  --fig-fill: #15305a;
+  --fig-shade: #0b1d3a;
+  --court-line: #5f7db3;
+  --on-ink: #0b1a33;
+  color-scheme: dark;
+}
