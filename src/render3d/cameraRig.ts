@@ -66,19 +66,24 @@ export class CameraRig {
   }
 
   /** offset：把画面中心往右挪的世界距离（米），给右侧的三视图小窗让位 */
-  setAspect(aspect: number, offset = 0): void {
-    const h = this.frameHeight / 2;
+  setAspect(aspect: number, offset = 0, verticalOffset = 0, heightScale = 1): void {
+    const h = this.frameHeight / 2 * heightScale;
     this.camera.left = -h * aspect + offset;
     this.camera.right = h * aspect + offset;
-    this.camera.top = h;
-    this.camera.bottom = -h;
+    this.camera.top = h + verticalOffset;
+    this.camera.bottom = -h + verticalOffset;
     this.camera.updateProjectionMatrix();
   }
 
   setView(name: ViewName, now: number, animate = true): void {
-    this.disableFree();
+    this.setViewSpec(VIEWS[name], now, animate);
     this.view = name;
-    const to = { ...VIEWS[name] };
+  }
+
+  /** 故事专用相机位置；仍然共用与实验室相同的正交投影和短弧过渡。 */
+  setViewSpec(spec: ViewSpec, now: number, animate = true): void {
+    this.disableFree();
+    const to = { ...spec, zoom: Math.max(0.1, spec.zoom) };
     if (!animate) {
       this.spec = to;
       this.tween = null;
@@ -86,6 +91,12 @@ export class CameraRig {
       return;
     }
     this.tween = { from: { ...this.spec }, to, start: now, duration: 700 };
+  }
+
+  /** 动作/站位改变了目标点时，保持当前方位重新对准。 */
+  refreshTarget(): void {
+    this.controls?.target.copy(this.target);
+    if (!this.controls) this.apply();
   }
 
   enableFree(dom: HTMLElement): void {

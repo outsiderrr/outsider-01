@@ -11,8 +11,11 @@
   "type": "module",
   "private": true,
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@types/node": "^26.6.4",
     "@types/three": "^0.186.0",
+    "lighthouse": "^13.5.0",
+    "playwright": "^1.63.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.2",
     "vitest": "^4.1.11"

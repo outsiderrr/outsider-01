@@ -4,7 +4,7 @@ import {
 } from '../../model';
 import type { Vec3 } from '../../model/vec';
 import type { ViewName } from '../../render3d/cameraRig';
-import { type MiniRect, type Stage, createStage } from '../../render3d/stage';
+import type { MiniRect, Stage } from '../../render3d/stage';
 import type { Camera2D } from '../../render2d/project';
 import { renderFigure } from '../../render2d/stickFigure';
 import '../../render3d/stage.css';
@@ -41,6 +41,11 @@ export function mountLab(root: HTMLElement, lang: Lang, opts: LabOptions = {}): 
   let playing = false;
   let slow = true;
   let phase = -1;
+  let disposed = false;
+  const abort = new AbortController();
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  const narrowScreen = matchMedia('(max-width: 960px)');
+  let minisExpanded = false;
 
   const segButtons = (group: string, items: readonly string[], label: (v: string) => string) =>
     items.map((v) => `<button type="button" data-${group}="${v}" aria-pressed="false">${label(v)}</button>`).join('');
@@ -75,6 +80,7 @@ export function mountLab(root: HTMLElement, lang: Lang, opts: LabOptions = {}): 
           <span class="label" id="lab-g-view">${T('lab.view')}</span>
           <div class="seg">${segButtons('view', VIEWS, (v) => T(`view.${v}`))}</div>
         </div>
+        <button type="button" class="btn lab__multi-toggle" aria-expanded="false" hidden>${lang === 'zh' ? '展开三视图' : 'Show three views'}</button>
         <dl class="lab__readouts">
           <div class="ro"><dt>${T('lab.speed')}</dt><dd><span class="ro__num" data-ro="speed">0.0</span><span class="ro__unit">m/s</span></dd></div>
           <div class="ro"><dt>${T('lab.separation')}</dt><dd><span class="ro__num" data-ro="sep">0</span><span class="ro__unit">°</span></dd></div>
@@ -111,8 +117,10 @@ export function mountLab(root: HTMLElement, lang: Lang, opts: LabOptions = {}): 
   const playBtn = q<HTMLButtonElement>('.lab__play');
   const input = q<HTMLInputElement>('.timeline__input');
   const head = q<HTMLDivElement>('.timeline__head');
-  stageEl.setAttribute('role', 'img');
+  const multiToggle = q<HTMLButtonElement>('.lab__multi-toggle');
+  stageEl.setAttribute('role', 'group');
   stageEl.setAttribute('aria-label', T('lab.stageLabel'));
+  stageEl.tabIndex = 0;
 
   // 时间轴刻度
   const ticks = q<HTMLDivElement>('.timeline__ticks');
@@ -129,21 +137,22 @@ export function mountLab(root: HTMLElement, lang: Lang, opts: LabOptions = {}): 
 
   let stage: Stage | null = null;
   let svg: SVGSVGElement | null = null;
-  if (!opts.force2d) {
-    stage = createStage(stageEl, {
-      multiView: true,
-      onLayout: placeMinis,
-      label: (k, v) => (k === 'speed' ? `${v.toFixed(1)} m/s` : `${T('lab.separation')} ${Math.round(v)}°`),
-    });
-  }
-  if (!stage) {
+  // 先显示可操作的线稿。强制 2D 时完全不下载 Three.js，而不是下载后再降级。
+  function show2d(finalFallback: boolean) {
+    if (svg) {
+      if (!finalFallback || root.querySelector('.lab__notice')) return;
+    } else {
     svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('viewBox', '0 0 654 400');
     svg.setAttribute('aria-hidden', 'true');
     stageEl.appendChild(svg);
-    stageEl.insertAdjacentHTML('beforeend', `<p class="lab__notice">${T('lab.fallback')}</p>`);
-    root.querySelectorAll<HTMLButtonElement>('[data-view]').forEach((b) => (b.disabled = b.dataset.view !== 'axo'));
+    }
+    if (finalFallback) {
+      stageEl.insertAdjacentHTML('beforeend', `<p class="lab__notice">${T('lab.fallback')}</p>`);
+      root.querySelectorAll<HTMLButtonElement>('[data-view]').forEach((b) => (b.disabled = b.dataset.view !== 'axo'));
+    }
   }
+  show2d(Boolean(opts.force2d));
 
   const setPressed = (attr: string, value: string) =>
     root.querySelectorAll<HTMLButtonElement>(`[data-${attr}]`).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset[attr] === value)));
@@ -155,12 +164,18 @@ export function mountLab(root: HTMLElement, lang: Lang, opts: LabOptions = {}): 
     }).join('');
   }
 
+  const paths = new Map<string, Vec3[]>();
   function draw2d() {
     if (!svg) return;
     const set = getSet(stroke, stance);
     const p = poseAt(set, time);
-    const path: Vec3[] = [];
-    for (let i = 0; i <= 160; i++) path.push(solvePose(poseAt(set, TIMES[1] + ((TEND - TIMES[1]) * i) / 160)).racket.center);
+    const key = `${stroke}-${stance}`;
+    let path = paths.get(key);
+    if (!path) {
+      path = [];
+      for (let i = 0; i <= 160; i++) path.push(solvePose(poseAt(set, TIMES[1] + ((TEND - TIMES[1]) * i) / 160)).racket.center);
+      paths.set(key, path);
+    }
     const trail: Vec3[] = [];
     for (let s = Math.max(0, time - 0.26); s <= time; s += 0.01) trail.push(solvePose(poseAt(set, s)).racket.center);
     svg.innerHTML = renderFigure(p, solvePose(p), CAM2D, {
@@ -193,6 +208,7 @@ export function mountLab(root: HTMLElement, lang: Lang, opts: LabOptions = {}): 
     head.style.left = pct(time);
     input.value = String(Math.round(time * 1000));
     const ph = nearestPhase(time);
+    input.setAttribute('aria-valuetext', `${time.toFixed(2)} ${lang === 'zh' ? '秒' : 'seconds'} · ${T(`phase.${stroke}.${stance}.${PHASES[ph]}.name`)}`);
     if (ph !== phase) {
       phase = ph;
       const id = PHASES[ph];
@@ -230,7 +246,7 @@ export function mountLab(root: HTMLElement, lang: Lang, opts: LabOptions = {}): 
   let clock = 0;
   const HOLD = 0.6;
   function tick(now: number) {
-    if (!playing) return;
+    if (!playing || disposed || !visible || document.hidden) return;
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
     clock += dt / (slow ? SLOW : 1);
@@ -240,6 +256,9 @@ export function mountLab(root: HTMLElement, lang: Lang, opts: LabOptions = {}): 
     raf = requestAnimationFrame(tick);
   }
   function setPlaying(on: boolean) {
+    on = on && visible && !document.hidden && !disposed;
+    if (on && playing) return;
+    cancelAnimationFrame(raf);
     playing = on;
     playBtn.setAttribute('aria-pressed', String(on));
     playBtn.innerHTML = `${on ? ICON_PAUSE : ICON_PLAY}<span>${T(on ? 'lab.pause' : 'lab.play')}</span>`;
@@ -270,21 +289,40 @@ export function mountLab(root: HTMLElement, lang: Lang, opts: LabOptions = {}): 
       setPressed('speed', b.dataset.speed);
     } else if (b.dataset.step) step(Number(b.dataset.step));
     else if (b === playBtn) setPlaying(!playing);
-  });
+    else if (b === multiToggle) {
+      minisExpanded = !minisExpanded;
+      syncMultiView();
+    }
+  }, { signal: abort.signal });
   input.addEventListener('input', () => {
     setPlaying(false);
     time = Number(input.value) / 1000;
     sync();
-  });
+  }, { signal: abort.signal });
 
-  // 键盘：实验室在视口里时才响应，避免影响页面其他部分
-  let visible = true;
-  const io = new IntersectionObserver((es) => (visible = es[0].intersectionRatio > 0.35), { threshold: [0, 0.35, 1] });
-  io.observe(root);
+  // 只观察画面本身：长章节在手机上永远未必能达到 35% 的可见比例。
+  const bounds = stageEl.getBoundingClientRect();
+  let visible = bounds.bottom > 0 && bounds.top < window.innerHeight;
+  const syncVisibility = () => {
+    const active = visible && !document.hidden;
+    stage?.setActive(active);
+    if (!active) setPlaying(false);
+  };
+  const io = new IntersectionObserver((entries) => {
+    visible = entries.some((entry) => entry.isIntersecting && entry.intersectionRatio > 0);
+    syncVisibility();
+  }, { threshold: [0, 0.01] });
+  io.observe(stageEl);
+  document.addEventListener('visibilitychange', syncVisibility, { signal: abort.signal });
+  // 用户切换系统设置时立即停止播放；不因为再次关闭减少动态效果而自动恢复。
+  reducedMotion.addEventListener('change', () => {
+    if (reducedMotion.matches) setPlaying(false);
+  }, { signal: abort.signal });
   const onKey = (e: KeyboardEvent) => {
-    if (!visible || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (!visible || e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
     const tgt = e.target as HTMLElement;
-    if (tgt.closest('select, textarea, input:not(.timeline__input)')) return;
+    // 页面其它控件，以及实验室的原生按钮/滑块，保留各自的键盘语义。
+    if (!root.contains(tgt) || tgt.closest('button, a, input, select, textarea, summary, [contenteditable="true"], [role="slider"]')) return;
     const k = e.key.toLowerCase();
     if (k === ' ') {
       e.preventDefault();
@@ -297,17 +335,52 @@ export function mountLab(root: HTMLElement, lang: Lang, opts: LabOptions = {}): 
     else if (k === 'b') setMotion('backhand', stance);
     else if (k === 'v') setView(VIEWS[(VIEWS.indexOf(view) + 1) % (stage ? VIEWS.length : 1)]);
   };
-  document.addEventListener('keydown', onKey);
+  root.addEventListener('keydown', onKey, { signal: abort.signal });
+
+  function syncMultiView() {
+    const show = !narrowScreen.matches || minisExpanded;
+    stage?.setMultiView(show);
+    multiToggle.hidden = !stage || !narrowScreen.matches;
+    multiToggle.setAttribute('aria-expanded', String(minisExpanded));
+    multiToggle.textContent = lang === 'zh'
+      ? (minisExpanded ? '收起三视图' : '展开三视图')
+      : (minisExpanded ? 'Hide three views' : 'Show three views');
+    root.classList.toggle('lab--minis-expanded', narrowScreen.matches && minisExpanded);
+  }
+  narrowScreen.addEventListener('change', syncMultiView, { signal: abort.signal });
 
   setPressed('speed', 'slow');
   setView('axo');
   setPlaying(false);
   setMotion(stroke, stance);
 
+  if (!opts.force2d) {
+    void import('../../render3d/stage').then(({ createStage }) => {
+      if (disposed) return;
+      stage = createStage(stageEl, {
+        multiView: !narrowScreen.matches || minisExpanded,
+        onLayout: placeMinis,
+        label: (key, value) => key === 'speed' ? `${value.toFixed(1)} m/s` : `${T('lab.separation')} ${Math.round(value)}°`,
+      });
+      if (!stage) { show2d(true); return; }
+      svg?.remove();
+      svg = null;
+      stage.setActive(visible && !document.hidden);
+      stage.setMotion(stroke, stance);
+      stage.setTime(time);
+      stage.setView(view);
+      stage.setPlaying(playing);
+      syncMultiView();
+    }).catch(() => {
+      if (!disposed) show2d(true);
+    });
+  }
+
   return {
     dispose() {
+      disposed = true;
       setPlaying(false);
-      document.removeEventListener('keydown', onKey);
+      abort.abort();
       io.disconnect();
       stage?.dispose();
       root.innerHTML = '';
