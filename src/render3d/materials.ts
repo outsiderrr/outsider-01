@@ -29,6 +29,7 @@ const FILL_FRAG = /* glsl */ `
   uniform vec3 uTint;
   uniform float uTintA;
   uniform float uTintB;
+  uniform float uTintMax;
   uniform float uHatch;
   uniform float uPixelRatio;
   varying vec3 vNormalV;
@@ -52,8 +53,8 @@ const FILL_FRAG = /* glsl */ `
     #else
       float tintAmt = uTintA;
     #endif
-    vec3 base = mix(uBase, uTint, tintAmt * 0.5);
-    vec3 shade = mix(uShade, mix(uShade, uTint, 0.8), tintAmt * 0.5);
+    vec3 base = mix(uBase, uTint, tintAmt * uTintMax);
+    vec3 shade = mix(uShade, mix(uShade, uTint, 0.8), tintAmt * uTintMax);
     vec3 col = mix(shade, base, lit);
     if (uHatch > 0.0) {
       float s = 4.5 * uPixelRatio;
@@ -84,6 +85,7 @@ export function createFillMaterial(opts: FillOptions = {}): THREE.ShaderMaterial
       uTint: { value: new THREE.Color('#ee4f17') },
       uTintA: { value: 0 },
       uTintB: { value: 0 },
+      uTintMax: { value: 0.5 },
       uHatch: { value: 1 },
       uPixelRatio: { value: 1 },
     },

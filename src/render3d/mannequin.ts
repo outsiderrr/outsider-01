@@ -287,6 +287,7 @@ export class Mannequin {
       m.uniforms.uBase.value.copy(p.figFill);
       m.uniforms.uShade.value.copy(p.figShade);
       m.uniforms.uInk.value.copy(p.ink);
+      m.uniforms.uTintMax.value = p.dark ? 0.34 : 0.5;
     }
     this.noseMat.color.copy(p.ink);
     this.markerMat.uniforms.uInk.value.copy(p.ink);

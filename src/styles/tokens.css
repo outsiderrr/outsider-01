@@ -19,6 +19,9 @@
   --fig-shade: #c9d4e3;
   --court-line: #8fa3c4;
   --on-ink: #f8fafc;
+  /* 2D 线稿：近侧肢体用墨色，远侧用淡一些的墨色（两套主题自动跟随） */
+  --fig-near: var(--ink);
+  --fig-far: color-mix(in srgb, var(--ink) 50%, var(--paper));
 
   --font-text: 'IBM Plex Sans Variable', 'Noto Sans SC Variable', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   --font-display: 'IBM Plex Sans Condensed', 'Noto Sans SC Variable', 'PingFang SC', 'Microsoft YaHei', sans-serif;

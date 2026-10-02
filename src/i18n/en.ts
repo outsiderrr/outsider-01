@@ -6,7 +6,7 @@ const readyBh = { name: 'Ready', cue: 'Knees soft, left hand on the throat' };
 export const en: Dict = {
   stroke: { forehand: 'Forehand', backhand: 'Two-handed backhand' },
   stance: { neutral: 'Neutral', semi: 'Semi-open', open: 'Open' },
-  view: { axo: 'Axonometric', front: 'Front', side: 'Side', top: 'Top', free: 'Free' },
+  view: { axo: '3/4', front: 'Front', side: 'Side', top: 'Top', free: 'Free' },
   phase: {
     forehand: {
       neutral: {
