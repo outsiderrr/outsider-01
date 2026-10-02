@@ -30,3 +30,43 @@ export function sitePlugin(): Plugin {
     },
   };
 }
+
+/** 只内联构建后的同站样式，保持层叠次序与 Vite 已重写的资源路径。 */
+export function inlineReportStyles(html: string, base: string, assets: ReadonlyMap<string, string>): string {
+  return html.replace(/<link\b[^>]*>/gi, (tag) => {
+    if (tag.includes('data-inline-style-for=')) return tag;
+    if (!/\brel=["']stylesheet["']/i.test(tag)) return tag;
+    const href = tag.match(/\bhref=["']([^"']+)["']/i)?.[1];
+    if (!href?.startsWith(`${base}assets/`)) return tag;
+    const name = href.slice(base.length);
+    const css = assets.get(name);
+    if (css === undefined) throw new Error(`缺少构建样式：${name}`);
+    return `<style data-report-style="${name}">${css.replace(/<\/style/gi, '<\\/style')}</style><link rel="stylesheet" href="${href}" disabled data-inline-style-for="${name}">`;
+  });
+}
+
+/** 小体积报告样式随正文到达，实验室与按需三维样式仍保留缓存文件。 */
+export function inlineReportStylesPlugin(): Plugin {
+  let base = '/';
+  return {
+    name: 'outsider-inline-report-styles',
+    apply: 'build',
+    enforce: 'post',
+    configResolved(config) { base = config.base; },
+    generateBundle: {
+      order: 'post',
+      handler(_options, bundle) {
+        const styles = new Map<string, string>();
+        for (const asset of Object.values(bundle)) {
+          if (asset.type === 'asset' && asset.fileName.endsWith('.css')) {
+            styles.set(asset.fileName, typeof asset.source === 'string' ? asset.source : new TextDecoder().decode(asset.source));
+          }
+        }
+        for (const name of ['index.html', 'en/index.html']) {
+          const page = bundle[name];
+          if (page?.type === 'asset' && typeof page.source === 'string') page.source = inlineReportStyles(page.source, base, styles);
+        }
+      },
+    },
+  };
+}

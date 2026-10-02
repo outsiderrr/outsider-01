@@ -9,7 +9,7 @@ if (!/^[a-z0-9][a-z0-9._-]*$/i.test(round)) throw new Error('QA_ROUND 格式不�
 const out = resolve(`artifacts/quality/${round}`);
 const pageBase = '/outsider-01/';
 const origin = 'https://local-build.invalid';
-const limits = { initialJsGzip: 60 * 1024, allJsGzip: 350 * 1024, actualFirstScreenFonts: 300 * 1024 };
+const limits = { initialJsGzip: 60 * 1024, allJsGzip: 350 * 1024, actualFirstScreenFonts: 300 * 1024, reportHtmlGzip: 50 * 1024 };
 const walk = async directory => (await Promise.all((await readdir(directory, { withFileTypes: true })).map(async entry => {
   const file = resolve(directory, entry.name);
   return entry.isDirectory() ? walk(file) : [file];
@@ -43,6 +43,12 @@ function scanHtml(text, file) {
     const tag = match[1].toLowerCase(), attribute = attrs(match[0]);
     if (tag === 'a') { if (isExternal(attribute.href ?? '')) ignoredNavigationAndMetadata.push({ file: relative(dist, file), kind: 'navigation', url: attribute.href }); continue; }
     if (tag === 'link') {
+      if (attribute['data-inline-style-for'] && /\sdisabled(?:\s|>|=)/i.test(match[0])) {
+        const name = attribute['data-inline-style-for'];
+        const path = resolveLocal(attribute.href, file);
+        const source = path && buffers.get(path)?.toString('utf8');
+        if (source && attribute.href === pageBase + name && text.includes(`<style data-report-style="${name}">${source.replace(/<\/style/gi, '<\\/style')}</style>`)) continue;
+      }
       if (/^(?:canonical|alternate)$/i.test(attribute.rel ?? '')) {
         if (isExternal(attribute.href ?? '')) ignoredNavigationAndMetadata.push({ file: relative(dist, file), kind: attribute.rel, url: attribute.href });
         continue;
@@ -90,7 +96,26 @@ for (const entry of ['index.html', 'en/index.html']) {
   }
   const assets = [...initial].map(size);
   const gzipBytes = assets.reduce((sum, asset) => sum + asset.gzipBytes, 0);
-  pages.push({ entry, assets, gzipBytes, limit: limits.initialJsGzip, pass: gzipBytes <= limits.initialJsGzip });
+  const htmlGzipBytes = gzipSync(text).length;
+  const inlineStyles = [...text.matchAll(/<style\b[^>]*data-report-style=["'][^"']+["'][^>]*>([\s\S]*?)<\/style>/gi)];
+  const styleLinks = [...text.matchAll(/<link\b[^>]*rel=["']stylesheet["'][^>]*>/gi)];
+  if (inlineStyles.length !== 2 || styleLinks.length !== 2) throw new Error(`报告首屏样式未按约定内联：${entry}`);
+  for (const [tag] of styleLinks) {
+    const attribute = attrs(tag);
+    const name = attribute['data-inline-style-for'];
+    const path = resolveLocal(attribute.href, file);
+    const source = path && buffers.get(path)?.toString('utf8');
+    if (!/\sdisabled(?:\s|>|=)/i.test(tag) || !name || !source || attribute.href !== pageBase + name ||
+        !text.includes(`<style data-report-style="${name}">${source.replace(/<\/style/gi, '<\\/style')}</style>`)) {
+      throw new Error(`禁用样式标记缺少对应完整内联内容：${entry}`);
+    }
+  }
+  for (const [, css] of inlineStyles) for (const match of css.matchAll(/url\(\s*["']?([^"')\s]+)["']?\s*\)/gi)) {
+    const path = resolveLocal(match[1], file);
+    if (path && !buffers.has(path)) throw new Error(`内联样式引用缺失资源：${entry} → ${match[1]}`);
+  }
+  pages.push({ entry, assets, gzipBytes, limit: limits.initialJsGzip, htmlGzipBytes, htmlLimit: limits.reportHtmlGzip,
+    inlineStyles: inlineStyles.length, pass: gzipBytes <= limits.initialJsGzip && htmlGzipBytes <= limits.reportHtmlGzip });
 }
 
 for (const [file, buffer] of buffers) {
@@ -100,9 +125,10 @@ for (const [file, buffer] of buffers) {
   if (extension === '.html') scanHtml(text, file);
   if (extension === '.js' || extension === '.mjs') scanCode(text, file);
   // CSS url() 才是加载资源；HTML 的 canonical、书目和源代码超链接不在这里扫描。
-  if (extension === '.css') {
-    for (const match of text.matchAll(/url\(\s*["']?([^"')\s]+)["']?\s*\)/gi)) request(match[1], file, 'css-url');
-    for (const match of text.matchAll(/@import\s+["']([^"']+)["']/gi)) request(match[1], file, 'css-import');
+  if (extension === '.css' || extension === '.html') {
+    const css = extension === '.css' ? text : [...text.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)].map(match => match[1]).join('\n');
+    for (const match of css.matchAll(/url\(\s*["']?([^"')\s]+)["']?\s*\)/gi)) request(match[1], file, 'css-url');
+    for (const match of css.matchAll(/@import\s+["']([^"']+)["']/gi)) request(match[1], file, 'css-import');
   }
 }
 const js = files.filter(file => /\.(?:m?js)$/.test(file)).map(size);
@@ -119,6 +145,7 @@ const report = {
 await mkdir(out, { recursive: true });
 await writeFile(resolve(out, 'budget-report.json'), JSON.stringify(report, null, 2));
 for (const page of pages) console.log(`${page.entry} 首屏 JS：${(page.gzipBytes / 1024).toFixed(1)} / 60 KB（gzip），${page.pass ? '通过' : '未通过'}。`);
+for (const page of pages) console.log(`${page.entry} 正文与内联样式：${(page.htmlGzipBytes / 1024).toFixed(1)} / 50 KB（gzip）。`);
 console.log(`全部 JS：${(allJsGzipBytes / 1024).toFixed(1)} / 350 KB（gzip），${report.allJs.pass ? '通过' : '未通过'}。`);
 console.log(`打包字体共 ${fonts.length} 个、${(report.fonts.packedBytes / 1024).toFixed(1)} KB；首屏实际下载另看运行时报告。`);
 console.log(`网络资源扫描：${uniqueRequests.length} 个第三方字面量请求；${unresolvedCalls.reduce((sum, item) => sum + item.calls, 0)} 处动态参数调用待运行时佐证。metadata 和普通外链不作网络请求。`);

@@ -52,6 +52,12 @@
   color-scheme: light;
 }
 
+:root[lang='en'] {
+  --font-text: 'IBM Plex Sans Variable', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --font-display: 'IBM Plex Sans Condensed', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+}
+
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     --paper: #0b1a33;

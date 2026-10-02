@@ -1,10 +1,10 @@
 import { resolve } from 'node:path';
 import { defineConfig } from 'vitest/config';
-import { sitePlugin } from './vite-plugin-site';
+import { inlineReportStylesPlugin, sitePlugin } from './vite-plugin-site';
 
 export default defineConfig(({ command, isPreview }) => ({
   base: command === 'build' || isPreview ? '/outsider-01/' : '/',
-  plugins: [sitePlugin()],
+  plugins: [sitePlugin(), inlineReportStylesPlugin()],
   build: {
     target: 'es2022',
     rollupOptions: {

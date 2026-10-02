@@ -3,7 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-const base = process.env.QA_URL ?? 'http://127.0.0.1:5173/';
+const base = process.env.QA_URL ?? 'http://127.0.0.1:4173/outsider-01/';
 const round = process.env.QA_ROUND ?? 'round-1';
 const out = resolve(`artifacts/quality/${round}`);
 await mkdir(out, { recursive: true });
@@ -20,10 +20,12 @@ try {
     const context = await browser.newContext({ viewport: { width: config.width, height: config.height }, colorScheme: config.theme, deviceScaleFactor: 1 });
     await context.addInitScript(theme => localStorage.setItem('outsider01-theme', theme), config.theme);
     const page = await context.newPage();
-    const errors = [], foreign = [], failed = [];
+    const errors = [], foreign = [], failed = [], fonts = [], requests = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
     page.on('request', request => { if (/^https?:/.test(request.url()) && new URL(request.url()).origin !== new URL(base).origin) foreign.push(request.url()); });
+    page.on('request', request => { if (request.resourceType() === 'font') fonts.push(request.url()); });
+    page.on('request', request => requests.push(request.url()));
     page.on('requestfailed', request => { if (!request.failure()?.errorText.includes('ABORTED')) failed.push({ url: request.url(), reason: request.failure()?.errorText }); });
     page.on('response', response => { if (response.status() >= 400) errors.push(`HTTP ${response.status()} ${response.url()}`); });
     await page.goto(base + (config.lang === 'en' ? 'en/' : ''), { waitUntil: 'networkidle' });
@@ -71,7 +73,11 @@ try {
     await page.waitForTimeout(350);
     const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
     const violations = axe.violations.map(v => ({ id: v.id, impact: v.impact, description: v.description, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) }));
-    result.pages.push({ ...config, errors: [...new Set(errors)], foreign: [...new Set(foreign)], failed, semantics, violations, shots });
+    if (config.lang === 'en' && fonts.some(url => /noto-sans-sc/.test(url))) errors.push('英文页不应下载整套中文字体');
+    const inlineStyles = await page.locator('link[data-inline-style-for]').evaluateAll(links => links.map(link => ({ href: link.href, disabled: link.disabled })));
+    if (inlineStyles.length !== 2 || inlineStyles.some(link => !link.disabled || requests.includes(link.href))) errors.push('已内联共享样式被重复请求');
+    if (new Set(fonts).size !== fonts.length) errors.push('字体被重复请求');
+    result.pages.push({ ...config, errors: [...new Set(errors)], foreign: [...new Set(foreign)], failed, fonts: [...new Set(fonts)], inlineStyles, semantics, violations, shots });
     await writeFile(resolve(out, 'browser-audit.json'), JSON.stringify(result, null, 2));
     console.log(`${key}：${shots.length} 张截图，错误 ${errors.length}，无障碍 ${violations.length}，横向溢出 ${semantics.overflow}`);
     await context.close();
