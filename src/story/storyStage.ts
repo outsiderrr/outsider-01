@@ -273,7 +273,7 @@ export async function mountStory(root: HTMLElement, lang: Lang, opts: { force2d:
       stage.setTime(currentTime);
       stage.setPose(tween ? pose : null);
       stage.setEmphasis(emphasis);
-      stage.setPlaying(playing);
+      stage.setPlaying(playing, playing && currentTime < 1.22);
       if (key !== viewKey) { stage.setViewSpec(view, !reduced && viewKey !== ''); viewKey = key; }
       stage.canvas.dataset.time = currentTime.toFixed(3);
       stage.canvas.dataset.stroke = stroke;

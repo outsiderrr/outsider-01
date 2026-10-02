@@ -25,15 +25,31 @@ export const TIER_SETTINGS: Record<QualityTier, TierSettings> = {
   low: { shadows: false, maxDpr: 1.25, capSegments: 4, radialSegments: 10, hatching: false },
 };
 
-/** 连续 3 秒平均帧率低于 45 就降一档；最低到 low */
+/** 累计 3 秒运动采样低于 45 帧就降一档；主动驻留不计时，最低到 low。 */
 export class FpsGovernor {
   private acc = 0;
   private frames = 0;
+  private sampling = false;
+  private lastFrame: number | null = null;
 
   constructor(
     private tier: QualityTier,
     private readonly onChange: (t: QualityTier) => void,
   ) {}
+
+  /** 明确区分动作推进与主动驻留；跨驻留不计算帧间隔，但保留已累计的运动样本。 */
+  setSampling(on: boolean): void {
+    if (this.sampling === on) return;
+    this.sampling = on;
+    this.lastFrame = null;
+  }
+
+  /** 只在舞台实际提交一整帧绘制之后调用；动作推进中的长帧不截断、不跳过。 */
+  recordFrame(now: number): void {
+    if (!this.sampling) return;
+    if (this.lastFrame !== null) this.sample(now - this.lastFrame);
+    this.lastFrame = now;
+  }
 
   sample(dtMs: number): void {
     this.acc += dtMs;
@@ -52,6 +68,7 @@ export class FpsGovernor {
   reset(): void {
     this.acc = 0;
     this.frames = 0;
+    this.lastFrame = null;
   }
 }
 

@@ -65,7 +65,8 @@ export interface Stage {
   setView(v: ViewName | 'free'): void;
   setMultiView(on: boolean): void;
   setOverlays(o: Partial<Overlays>): void;
-  setPlaying(on: boolean): void;
+  /** advancing=false 表示播放循环的主动驻留，不把它计作低帧率。 */
+  setPlaying(on: boolean, advancing?: boolean): void;
   readout(): Readout;
   tier(): QualityTier;
   dispose(): void;
@@ -156,7 +157,6 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
   let poseOverride: Pose | null = null;
   let sceneDirty = true;
   let dirty = true;
-  let lastRender = 0;
   let width = 1;
   let height = 1;
   let rects: MiniRect[] = [];
@@ -426,9 +426,8 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
       renderView(cam, r.x, r.y, r.w, r.h, 1.1, palette.paper2);
     }
     renderer.setScissorTest(false);
-    // 已在暂停、隐藏和重新激活时清零；极低帧率也必须纳入降档判断。
-    if (playing && lastRender) governor.sample(Math.min(1000, now - lastRender));
-    lastRender = now;
+    // 调用者明确标识随挥驻留。真正推进动作时，完整长帧必须纳入降档判断。
+    governor.recordFrame(now);
     canvas.dataset.renderCount = String(Number(canvas.dataset.renderCount ?? 0) + 1);
     canvas.dataset.renderTime = now.toFixed(2);
     canvas.dataset.quality = tier;
@@ -453,7 +452,7 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
     if (document.hidden) {
       cancelAnimationFrame(raf);
       raf = 0;
-      lastRender = 0;
+      governor.reset();
     } else schedule();
   }
   function labelHighlight(e: Event): void {
@@ -518,7 +517,6 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
       if (disposed || active === on) return;
       active = on;
       canvas.dataset.active = String(on);
-      lastRender = 0;
       governor.reset();
       if (on) { dirty = true; schedule(); }
       else { cancelAnimationFrame(raf); raf = 0; }
@@ -577,11 +575,12 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
       sceneDirty = true;
       schedule();
     },
-    setPlaying(on) {
-      if (playing === on) return;
-      playing = on;
-      lastRender = 0;
-      governor.reset();
+    setPlaying(on, advancing = on) {
+      if (playing !== on) {
+        playing = on;
+        governor.reset();
+      }
+      governor.setSampling(on && advancing);
     },
     readout() {
       const pose = poseAt(set, t);

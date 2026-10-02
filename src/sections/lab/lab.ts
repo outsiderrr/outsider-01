@@ -131,7 +131,7 @@ export function mountLab(root: HTMLElement, lang: Lang, opts: LabOptions = {}): 
     const names = { front: T('lab.multiFront'), side: T('lab.multiSide'), top: T('lab.multiTop') };
     const en = { front: 'FRONT', side: 'SIDE', top: 'TOP' };
     minisEl.innerHTML = rects
-      .map((r) => `<div class="mini" style="left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px"><span class="mini__label">${names[r.name]} <span lang="en">${en[r.name]}</span></span></div>`)
+      .map((r) => `<div class="mini" style="left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px"><span class="mini__label">${names[r.name]}${lang === 'zh' ? ` <span lang="en">${en[r.name]}</span>` : ''}</span></div>`)
       .join('');
   };
 
@@ -196,6 +196,7 @@ export function mountLab(root: HTMLElement, lang: Lang, opts: LabOptions = {}): 
 
   function sync() {
     const set = getSet(stroke, stance);
+    stage?.setPlaying(playing, playing && time < TEND);
     stage?.setTime(time);
     draw2d();
     const pose = poseAt(set, time);
@@ -263,7 +264,7 @@ export function mountLab(root: HTMLElement, lang: Lang, opts: LabOptions = {}): 
     playing = on;
     playBtn.setAttribute('aria-pressed', String(on));
     playBtn.innerHTML = `${on ? ICON_PAUSE : ICON_PLAY}<span>${T(on ? 'lab.pause' : 'lab.play')}</span>`;
-    stage?.setPlaying(on);
+    stage?.setPlaying(on, on && time < TEND);
     if (on) {
       clock = time >= TEND - 1e-3 ? 0 : time;
       last = performance.now();
@@ -361,7 +362,7 @@ export function mountLab(root: HTMLElement, lang: Lang, opts: LabOptions = {}): 
       pendingStage = createStage(stageEl, {
         multiView: !narrowScreen.matches || minisExpanded,
         onLayout: placeMinis,
-        label: (key, value) => key === 'speed' ? `${value.toFixed(1)} m/s` : `${T('lab.separation')} ${Math.round(value)}°`,
+        label: (key, value) => key === 'speed' ? `${value.toFixed(1)} m/s` : `${lang === 'en' ? 'Separation' : T('lab.separation')} ${Math.round(value)}°`,
       });
       if (!pendingStage) { show2d(true); return; }
       pendingStage.setActive(false);
@@ -375,7 +376,7 @@ export function mountLab(root: HTMLElement, lang: Lang, opts: LabOptions = {}): 
       stage.setMotion(stroke, stance);
       stage.setTime(time);
       stage.setView(view);
-      stage.setPlaying(playing);
+      stage.setPlaying(playing, playing && time < TEND);
       syncMultiView();
     }).catch(() => {
       pendingStage?.dispose();
