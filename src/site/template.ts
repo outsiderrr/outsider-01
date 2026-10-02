@@ -7,6 +7,19 @@ const escape = (text: string): string => text.replace(/[&<>"']/g, (c) => ({ '&':
 const SITE_URL = 'https://outsiderrr.github.io/outsider-01/';
 const NAV = [ ['abstract', 'abstract'], ['fig-01', 'chain'], ['fig-02', 'stances'], ['fig-03', 'forehand'], ['fig-04', 'backhand'], ['lab', 'lab'], ['conclusion', 'conclusion'], ['notes', 'notes'] ] as const;
 
+export function renderCoverTitle(lang: Lang): string {
+  const lines = lang === 'zh' ? ['网球挥拍', '实验报告'] : ['A Tennis Swing', 'Lab Report'];
+  let order = 0;
+  return lines.map((line, lineIndex) => {
+    const tokens = lang === 'zh' ? [...line] : line.split(' ');
+    const content = tokens.map((token, tokenIndex) => {
+      const last = lineIndex === lines.length - 1 && tokenIndex === tokens.length - 1;
+      return `<span class="cover-token" data-title-token style="--token-order:${order++}">${escape(token)}${last ? `<span class="title-dot">${lang === 'zh' ? '。' : '.'}</span>` : ''}</span>`;
+    }).join(lang === 'zh' ? '' : ' ');
+    return `<span class="cover-title-line" aria-hidden="true">${content}</span>`;
+  }).join(lang === 'zh' ? '' : ' ');
+}
+
 export function modelNumbers(stroke: Stroke, stance: Stance): Record<string, string> {
   const set = getSet(stroke, stance);
   const backswing = poseAt(set, set.times[1]);
@@ -27,7 +40,7 @@ const insertNumbers = (text: string, values: Record<string, string>): string =>
   });
 
 function heading(lang: Lang, number: string, title: string, lead = ''): string {
-  return `<div class="section-heading"><p class="eyebrow">${escape(number)}</p><h2 class="section-title">${escape(title)}</h2>${lead ? `<p class="section-lead">${escape(lead)}</p>` : ''}<span class="section-rule" aria-hidden="true"></span><span class="model-note label">${escape(t(lang, 'lab.modelNote'))}</span></div>`;
+  return `<div class="section-heading"><p class="eyebrow">${escape(number)}</p><h2 class="section-title">${escape(title)}</h2>${lead ? `<p class="section-lead">${escape(lead)}</p><span class="model-note label">${escape(t(lang, 'lab.modelNote'))}</span>` : ''}<span class="section-rule" aria-hidden="true"></span></div>`;
 }
 
 function stageSlot(lang: Lang, slot: string, stroke: Stroke = 'forehand', phase: PhaseId = 'contact'): string {
@@ -61,7 +74,7 @@ function phaseSection(lang: Lang, stroke: Stroke): string {
     ${heading(lang, T(`phases.${stroke}.fig`), T(`phases.${stroke}.title`), T(`phases.${stroke}.lead`)).replace('class="section-title"', `class="section-title" id="heading-${stroke}"`)}
     <div class="story-layout"><div class="story-steps">${cards}</div><div class="story-visual">
       <div class="phase-toolbar"><span class="label">${escape(T('phases.stanceLabel'))}</span><div class="seg" role="group" aria-label="${escape(T('phases.stanceLabel'))}">${STANCES.map((stance) => `<button type="button" data-story-stance="${stance}" aria-pressed="${stance === 'semi'}">${escape(T(`stance.${stance}`))}</button>`).join('')}</div></div>
-      <div class="stage-caption label"><span>${number} / 05</span><output data-current-phase aria-live="polite">${escape(T(`phase.${stroke}.semi.ready.name`))}</output></div>
+      <div class="stage-caption label"><span>FIG. ${number}</span><output data-current-phase aria-live="polite">${escape(T(`phase.${stroke}.semi.ready.name`))}</output></div>
       ${stageSlot(lang, stroke, stroke, 'ready')}
       <div class="phase-controls seg" data-phase-controls role="group" aria-label="${escape(T('lab.timeline'))}">${PHASES.map((phase, i) => `<button type="button" data-phase-step="${i}" aria-pressed="${i === 0}" aria-label="${escape(T(`phase.${stroke}.semi.${phase}.name`))}">${String(i + 1).padStart(2, '0')}</button>`).join('')}</div>
       <p class="stage-footnote label">${escape(T('lab.modelNote'))} · ${escape(T('stroke.' + stroke))}</p>
@@ -90,11 +103,11 @@ export function renderPage(lang: Lang): string {
   </div></header>
   <main id="main">
     <section id="cover" class="site-section cover" aria-labelledby="cover-title"><div class="section-inner cover-inner">
-      <div class="cover-copy"><p class="eyebrow">${escape(T('cover.kicker'))}</p><h1 class="cover-title" id="cover-title">${lang === 'zh' ? '<span>网球挥拍</span><span>实验报告<span class="title-dot">。</span></span>' : '<span>A Tennis Swing</span><span>Lab Report<span class="title-dot">.</span></span>'}</h1>
+      <div class="cover-copy"><p class="eyebrow">${escape(T('cover.kicker'))}</p><h1 class="cover-title" id="cover-title" aria-label="${escape(T('cover.title'))}">${renderCoverTitle(lang)}</h1>
         <p class="cover-subtitle">${escape(T('cover.subtitle'))}</p><p class="cover-lead">${escape(T('cover.lead'))}</p>
         <dl class="cover-meta">${['subject', 'duration', 'frames'].map((key) => `<div><dt>${escape(T(`cover.meta.${key}`))}</dt><dd>${escape(T(`cover.meta.${key}Value`))}</dd></div>`).join('')}</dl>
         <a class="cover-scroll" href="#abstract"><span aria-hidden="true">↓</span>${escape(T('cover.scroll'))}<span class="label" aria-hidden="true">01—09</span></a>
-      </div><div class="cover-stage"><div class="stage-caption label"><span>00 / 05</span><span>${escape(T('stroke.forehand'))} · ${escape(T('stance.semi'))}</span></div>
+      </div><div class="cover-stage"><div class="stage-caption label"><span>FIG. 00</span><span>${escape(T('stroke.forehand'))} · ${escape(T('stance.semi'))}</span></div>
         ${stageSlot(lang, 'cover')}
         <div class="cover-stage-footer"><span class="model-note label">${escape(T('lab.modelNote'))}</span><button class="btn cover-play" type="button" aria-pressed="true">${lang === 'zh' ? '暂停演示' : 'Pause demo'}</button></div>
       </div>
@@ -105,8 +118,8 @@ export function renderPage(lang: Lang): string {
     <section id="fig-01" class="site-section chain-section"><div class="section-inner">
       ${heading(lang, T('chain.fig'), T('chain.title'), T('chain.lead'))}
       <div class="story-layout"><div class="story-steps">${chainKeys.map((key, i) => `<article class="story-step${i === 0 ? ' is-active' : ''}" data-step="${i}"><p class="step-index label">0${i + 1} / 05</p><h3>${escape(T(`chain.steps.${key}.name`))}</h3><p>${escape(insertNumbers(T(`chain.steps.${key}.body`), numbers))}</p></article>`).join('')}</div>
-        <div class="story-visual"><div class="stage-caption label"><span>01 / 05</span><output data-current-phase aria-live="polite">${escape(T('chain.steps.legs.name'))}</output></div>${stageSlot(lang, 'chain', 'forehand', 'drive')}
-          <figure class="chain-figure"><figcaption class="label">${escape(T('chain.chart.title'))}</figcaption>${renderChainChart(lang)}<div class="curve-legend">${chartKeys.map((key) => `<span data-curve-label="${key}"><i aria-hidden="true"></i>${escape(T(`chain.chart.${key}`))}<strong>${peakTime(chart.t, chart[key as keyof Omit<typeof chart, 't'>]).toFixed(3)} s</strong></span>`).join('')}</div><p class="figure-note">${escape(T('chain.chart.note'))}</p></figure>
+        <div class="story-visual"><div class="stage-caption label"><span>FIG. 01</span><output data-current-phase aria-live="polite">${escape(T('chain.steps.legs.name'))}</output></div>${stageSlot(lang, 'chain', 'forehand', 'drive')}
+          <figure class="chain-figure"><figcaption class="label">${escape(T('chain.chart.title'))}</figcaption>${renderChainChart(lang)}<div class="curve-legend">${chartKeys.map((key) => `<span data-curve-label="${key}"><i aria-hidden="true"></i>${escape(T(`chain.chart.${key}`))}<strong>${peakTime(chart.t, chart[key as keyof Omit<typeof chart, 't'>]).toFixed(3)} s</strong></span>`).join('')}</div><p class="figure-note"><span class="chart-note-full">${escape(T('chain.chart.note'))}</span><span class="chart-note-short">${escape(T('chain.chart.noteShort'))}</span></p></figure>
         </div>
       </div>
     </div></section>
@@ -146,7 +159,8 @@ export function renderSiteDocument(shell: string, lang: Lang): string {
   const url = SITE_URL + (lang === 'en' ? 'en/' : '');
   const title = escape(t(lang, 'site.title'));
   const description = escape(t(lang, 'site.description'));
-  const metadata = `<meta name="description" content="${description}"/>
+  const metadata = `<script>document.documentElement.classList.add('js');try{const t=localStorage.getItem('outsider01-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch{}</script>
+    <meta name="description" content="${description}"/>
     <link rel="canonical" href="${url}"/>
     <link rel="alternate" hreflang="zh-CN" href="${SITE_URL}"/>
     <link rel="alternate" hreflang="en" href="${SITE_URL}en/"/>
@@ -154,7 +168,11 @@ export function renderSiteDocument(shell: string, lang: Lang): string {
     <meta property="og:type" content="website"/><meta property="og:title" content="${title}"/>
     <meta property="og:description" content="${description}"/><meta property="og:url" content="${url}"/>
     <meta property="og:locale" content="${lang === 'zh' ? 'zh_CN' : 'en_US'}"/>
-    <meta name="twitter:card" content="summary_large_image"/>`;
+    <meta property="og:image" content="${SITE_URL}share/report-${lang}.png"/>
+    <meta property="og:image:width" content="1200"/><meta property="og:image:height" content="630"/>
+    <meta property="og:image:alt" content="${description}"/>
+    <meta name="twitter:card" content="summary_large_image"/>
+    <meta name="twitter:image" content="${SITE_URL}share/report-${lang}.png"/>`;
   return shell.replace(/<html\b[^>]*>/, `<html lang="${lang === 'zh' ? 'zh-CN' : 'en'}">`)
     .replace(/<title>.*?<\/title>/s, `<title>${title}</title>`)
     .replace('<!--site-head-->', metadata)

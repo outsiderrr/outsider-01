@@ -80,4 +80,53 @@ describe('quality', () => {
     for (let i = 0; i < 200; i++) low.sample(1000 / 20);
     expect(seen).toEqual([]);
   });
+  it('60 帧的短动作反复驻留不误降档，重复开启采样也不重置帧间隔', () => {
+    const seen: string[] = [];
+    const governor = new FpsGovernor('high', tier => seen.push(tier));
+    let now = 0;
+    for (let cycle = 0; cycle < 10; cycle++) {
+      governor.setSampling(true);
+      governor.recordFrame(now);
+      for (let frame = 0; frame < 72; frame++) {
+        governor.setSampling(true);
+        governor.recordFrame(now += 1000 / 60);
+      }
+      governor.setSampling(false);
+      now += 600;
+      governor.recordFrame(now);
+    }
+    expect(seen).toEqual([]);
+  });
+  it('驻留不清空累计运动样本，多个 1.2 秒慢动作片段仍会降档', () => {
+    const seen: string[] = [];
+    const governor = new FpsGovernor('high', tier => seen.push(tier));
+    let now = 0;
+    for (let cycle = 0; cycle < 3; cycle++) {
+      governor.setSampling(true);
+      governor.recordFrame(now);
+      for (let frame = 0; frame < 36; frame++) governor.recordFrame(now += 1000 / 30);
+      governor.setSampling(false);
+      now += 600;
+    }
+    expect(seen).toEqual(['medium']);
+  });
+  it('实际运动中的 5 秒长帧完整计入，不能被驻留策略跳过或截断', () => {
+    const seen: string[] = [];
+    const governor = new FpsGovernor('high', tier => seen.push(tier));
+    governor.setSampling(true);
+    governor.recordFrame(0);
+    governor.recordFrame(5000);
+    expect(seen).toEqual(['medium']);
+  });
+  it('主动暂停或离屏重置后不把间隔当成长帧', () => {
+    const seen: string[] = [];
+    const governor = new FpsGovernor('high', tier => seen.push(tier));
+    governor.setSampling(true);
+    governor.recordFrame(0);
+    governor.recordFrame(1000 / 60);
+    governor.reset();
+    governor.recordFrame(10000);
+    governor.recordFrame(10000 + 1000 / 60);
+    expect(seen).toEqual([]);
+  });
 });

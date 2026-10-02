@@ -2,8 +2,18 @@ import { describe, expect, it } from 'vitest';
 import { getSet, poseAt } from '../src/model';
 import { chainState, cursorPosition } from '../src/story/chain';
 import { blendStoryPose, phaseState, phaseView } from '../src/story/phases';
+import { stageVisibleEnough } from '../src/story/storyStage';
 
 describe('滚动叙事纯逻辑', () => {
+  it('舞台只有边缘或不足七成面积可见时不建立 GPU 资源', () => {
+    const rect = { left: 20, right: 392, width: 372, top: 611, bottom: 971, height: 360 };
+    expect(stageVisibleEnough(rect, 412, 823)).toBe(false);
+    expect(stageVisibleEnough({ ...rect, top: 500, bottom: 860 }, 412, 823)).toBe(true);
+  });
+  it('桌面完整舞台无需用户操作即可初始化，超高舞台按可容纳面积计算', () => {
+    expect(stageVisibleEnough({ left: 750, right: 1320, width: 570, top: 150, bottom: 750, height: 600 }, 1440, 900)).toBe(true);
+    expect(stageVisibleEnough({ left: 0, right: 375, width: 375, top: 80, bottom: 1080, height: 1000 }, 375, 812)).toBe(true);
+  });
   it('链条时间范围和强调顺序被夹在规定的五步内', () => {
     expect(chainState(-1)).toEqual({ time: 0.55, group: 0, progress: 0 });
     expect(chainState(1)).toEqual({ time: 0.92, group: 4, progress: 1 });

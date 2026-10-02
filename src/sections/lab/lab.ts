@@ -131,11 +131,12 @@ export function mountLab(root: HTMLElement, lang: Lang, opts: LabOptions = {}): 
     const names = { front: T('lab.multiFront'), side: T('lab.multiSide'), top: T('lab.multiTop') };
     const en = { front: 'FRONT', side: 'SIDE', top: 'TOP' };
     minisEl.innerHTML = rects
-      .map((r) => `<div class="mini" style="left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px"><span class="mini__label">${names[r.name]} <span lang="en">${en[r.name]}</span></span></div>`)
+      .map((r) => `<div class="mini" style="left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px"><span class="mini__label">${names[r.name]}${lang === 'zh' ? ` <span lang="en">${en[r.name]}</span>` : ''}</span></div>`)
       .join('');
   };
 
   let stage: Stage | null = null;
+  let pendingStage: Stage | null = null;
   let svg: SVGSVGElement | null = null;
   // 先显示可操作的线稿。强制 2D 时完全不下载 Three.js，而不是下载后再降级。
   function show2d(finalFallback: boolean) {
@@ -195,6 +196,7 @@ export function mountLab(root: HTMLElement, lang: Lang, opts: LabOptions = {}): 
 
   function sync() {
     const set = getSet(stroke, stance);
+    stage?.setPlaying(playing, playing && time < TEND);
     stage?.setTime(time);
     draw2d();
     const pose = poseAt(set, time);
@@ -262,7 +264,7 @@ export function mountLab(root: HTMLElement, lang: Lang, opts: LabOptions = {}): 
     playing = on;
     playBtn.setAttribute('aria-pressed', String(on));
     playBtn.innerHTML = `${on ? ICON_PAUSE : ICON_PLAY}<span>${T(on ? 'lab.pause' : 'lab.play')}</span>`;
-    stage?.setPlaying(on);
+    stage?.setPlaying(on, on && time < TEND);
     if (on) {
       clock = time >= TEND - 1e-3 ? 0 : time;
       last = performance.now();
@@ -355,23 +357,32 @@ export function mountLab(root: HTMLElement, lang: Lang, opts: LabOptions = {}): 
   setMotion(stroke, stance);
 
   if (!opts.force2d) {
-    void import('../../render3d/stage').then(({ createStage }) => {
+    void import('../../render3d/stage').then(async ({ createStage }) => {
       if (disposed) return;
-      stage = createStage(stageEl, {
+      pendingStage = createStage(stageEl, {
         multiView: !narrowScreen.matches || minisExpanded,
         onLayout: placeMinis,
-        label: (key, value) => key === 'speed' ? `${value.toFixed(1)} m/s` : `${T('lab.separation')} ${Math.round(value)}°`,
+        label: (key, value) => key === 'speed' ? `${value.toFixed(1)} m/s` : `${lang === 'en' ? 'Separation' : T('lab.separation')} ${Math.round(value)}°`,
       });
-      if (!stage) { show2d(true); return; }
+      if (!pendingStage) { show2d(true); return; }
+      pendingStage.setActive(false);
+      await pendingStage.ready;
+      if (disposed) { pendingStage.dispose(); pendingStage = null; return; }
+      stage = pendingStage;
+      pendingStage = null;
       svg?.remove();
       svg = null;
       stage.setActive(visible && !document.hidden);
       stage.setMotion(stroke, stance);
       stage.setTime(time);
       stage.setView(view);
-      stage.setPlaying(playing);
+      stage.setPlaying(playing, playing && time < TEND);
       syncMultiView();
     }).catch(() => {
+      pendingStage?.dispose();
+      pendingStage = null;
+      stage?.dispose();
+      stage = null;
       if (!disposed) show2d(true);
     });
   }
@@ -383,6 +394,7 @@ export function mountLab(root: HTMLElement, lang: Lang, opts: LabOptions = {}): 
       abort.abort();
       io.disconnect();
       stage?.dispose();
+      pendingStage?.dispose();
       root.innerHTML = '';
     },
   };

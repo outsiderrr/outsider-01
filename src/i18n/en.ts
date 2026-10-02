@@ -146,6 +146,7 @@ export const en: Dict = {
       y: 'Relative speed',
       contact: 'Contact',
       note: 'From this site’s semi-open forehand model. The first three curves show angular speed; the racket shows linear speed. Each is scaled to its own peak: compare timing, not absolute magnitudes. Peak times are not training targets.',
+      noteShort: 'Angular/linear speeds, each scaled to its own peak. Compare timing, not magnitude. Model values.',
     },
   },
   stances: {

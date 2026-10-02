@@ -52,6 +52,8 @@ export interface StageOptions {
 
 export interface Stage {
   readonly canvas: HTMLCanvasElement;
+  /** 着色器异步预热完成前，由调用者保留可读的静态线稿。 */
+  readonly ready: Promise<void>;
   attach(container: HTMLElement): void;
   setActive(on: boolean): void;
   setEmphasis(group: number | null): void;
@@ -63,7 +65,8 @@ export interface Stage {
   setView(v: ViewName | 'free'): void;
   setMultiView(on: boolean): void;
   setOverlays(o: Partial<Overlays>): void;
-  setPlaying(on: boolean): void;
+  /** advancing=false 表示播放循环的主动驻留，不把它计作低帧率。 */
+  setPlaying(on: boolean, advancing?: boolean): void;
   readout(): Readout;
   tier(): QualityTier;
   dispose(): void;
@@ -123,7 +126,7 @@ function blobTexture(): THREE.CanvasTexture {
 }
 
 export function createStage(container: HTMLElement, opts: StageOptions = {}): Stage | null {
-  if (!webglAvailable()) return null;
+  // 直接尝试建立唯一上下文，避免“探测一次 + 正式一次”的重复 GPU 初始化。
   let renderer: THREE.WebGLRenderer;
   try {
     renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -135,6 +138,8 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const canvas = renderer.domElement;
   canvas.className = 'stage-canvas';
+  Object.assign(canvas.style, { position: 'absolute', inset: '0', visibility: 'hidden' });
+  canvas.dataset.ready = 'false';
   container.appendChild(canvas);
 
   let tier: QualityTier = opts.tier ?? initialTier(detectDevice());
@@ -144,14 +149,16 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
   let set: KeyframeSet = getSet('forehand', 'semi');
   let t = 0;
   let playing = false;
+  let advancing = false;
+  let motionSegment = 0;
   let active = true;
   let disposed = false;
+  let prewarming = true;
   let emphasis: number | null = null;
   let hoverEmphasis: number | null = null;
   let poseOverride: Pose | null = null;
   let sceneDirty = true;
   let dirty = true;
-  let lastRender = 0;
   let width = 1;
   let height = 1;
   let rects: MiniRect[] = [];
@@ -161,6 +168,7 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
   const scene = new THREE.Scene();
   const rig = new CameraRig(2.6);
   const labels = new LabelLayer(container);
+  labels.el.style.visibility = 'hidden';
 
   // 地面：网格、球场线、阴影
   const floorMat = new THREE.ShaderMaterial({
@@ -420,21 +428,25 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
       renderView(cam, r.x, r.y, r.w, r.h, 1.1, palette.paper2);
     }
     renderer.setScissorTest(false);
-    // 已在暂停、隐藏和重新激活时清零；极低帧率也必须纳入降档判断。
-    if (playing && lastRender) governor.sample(Math.min(1000, now - lastRender));
-    lastRender = now;
+    // 调用者明确标识随挥驻留。真正推进动作时，完整长帧必须纳入降档判断。
+    governor.recordFrame(now);
     canvas.dataset.renderCount = String(Number(canvas.dataset.renderCount ?? 0) + 1);
-    canvas.dataset.renderTime = now.toFixed(2);
+    // 与绘制计数一起记录，不能用先行更新的时间线输入推断这一帧的动作状态。
+    // 这是 CPU 端完成绘制提交的时刻，不是 GPU 呈现确认。
+    canvas.dataset.renderTime = performance.now().toFixed(3);
+    canvas.dataset.renderModelTime = String(t);
+    canvas.dataset.renderAdvancing = String(advancing);
+    canvas.dataset.renderSegment = String(motionSegment);
     canvas.dataset.quality = tier;
   }
 
   let raf = 0;
   function schedule(): void {
-    if (!disposed && active && !document.hidden && !raf) raf = requestAnimationFrame(loop);
+    if (!disposed && !prewarming && active && !document.hidden && !raf) raf = requestAnimationFrame(loop);
   }
   const loop = (now: number) => {
     raf = 0;
-    if (!active || document.hidden || disposed) return;
+    if (!active || prewarming || document.hidden || disposed) return;
     if (rig.update(now)) dirty = true;
     if (dirty || sceneDirty) {
       dirty = false;
@@ -447,7 +459,7 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
     if (document.hidden) {
       cancelAnimationFrame(raf);
       raf = 0;
-      lastRender = 0;
+      governor.reset();
     } else schedule();
   }
   function labelHighlight(e: Event): void {
@@ -473,13 +485,33 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
 
   applyPalette(palette);
   frameTargets();
-  trail.setMotion(set);
+  if (overlays.path) trail.setMotion(set);
   resize();
   applyTier();
-  schedule();
+  // 先让保留的线稿/正文得到一次绘制机会，再提交 shader 编译；
+  // compileAsync 使用 KHR_parallel_shader_compile，避免首帧 render 同步等待链接。
+  let warmupFrame = 0;
+  let releaseWarmup: () => void = () => {};
+  const ready = new Promise<void>((resolve) => {
+    releaseWarmup = resolve;
+    warmupFrame = requestAnimationFrame(() => { warmupFrame = 0; resolve(); });
+  }).then(async () => {
+    if (disposed) return;
+    updateScene();
+    await renderer.compileAsync(scene, rig.camera);
+    if (disposed) return;
+    prewarming = false;
+    canvas.style.visibility = '';
+    labels.el.style.visibility = '';
+    canvas.dataset.ready = 'true';
+    sceneDirty = true;
+    dirty = true;
+    schedule();
+  });
 
   return {
     canvas,
+    ready,
     attach(next) {
       if (disposed || next === container) return;
       ro.disconnect();
@@ -492,7 +524,6 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
       if (disposed || active === on) return;
       active = on;
       canvas.dataset.active = String(on);
-      lastRender = 0;
       governor.reset();
       if (on) { dirty = true; schedule(); }
       else { cancelAnimationFrame(raf); raf = 0; }
@@ -522,7 +553,7 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
       set = getSet(stroke, stance);
       poseOverride = null;
       frameTargets();
-      trail.setMotion(set);
+      if (overlays.path) trail.setMotion(set);
       sceneDirty = true;
       schedule();
     },
@@ -546,15 +577,22 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
       schedule();
     },
     setOverlays(o) {
+      if (o.path && !overlays.path) trail.setMotion(set);
       Object.assign(overlays, o);
       sceneDirty = true;
       schedule();
     },
-    setPlaying(on) {
-      if (playing === on) return;
-      playing = on;
-      lastRender = 0;
-      governor.reset();
+    setPlaying(on, nextAdvancing = on) {
+      if (playing !== on) {
+        playing = on;
+        governor.reset();
+      }
+      const next = on && nextAdvancing;
+      if (next !== advancing) {
+        advancing = next;
+        motionSegment += 1;
+      }
+      governor.setSampling(advancing);
     },
     readout() {
       const pose = poseAt(set, t);
@@ -565,6 +603,8 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
       if (disposed) return;
       disposed = true;
       cancelAnimationFrame(raf);
+      cancelAnimationFrame(warmupFrame);
+      releaseWarmup();
       ro.disconnect();
       offPalette();
       document.removeEventListener('visibilitychange', onVisibility);

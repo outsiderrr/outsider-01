@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { renderPage, renderSiteDocument } from '../src/site/template';
+import { renderPage, renderSiteDocument, renderCoverTitle } from '../src/site/template';
 import { renderChainChart, renderPhaseFigure, renderStanceFigure } from '../src/site/figures';
 import { PHASES, STANCES, STROKES } from '../src/model';
 import { siteLanguage } from '../vite-plugin-site';
@@ -37,6 +37,9 @@ describe('构建时双语页面', () => {
       expect(html).toContain(`lang="${lang === 'zh' ? 'zh-CN' : 'en'}"`);
       expect(html).toContain('<meta name="description"');
       expect(html).toContain('<meta property="og:title"');
+      expect(html).toContain(`share/report-${lang}.png`);
+      expect(html).toContain('property="og:image:width" content="1200"');
+      expect(html.indexOf("classList.add('js')")).toBeLessThan(html.indexOf('</head>'));
       expect(html).toContain('rel="canonical"');
       expect(html).toContain('hreflang="zh-CN"');
       expect(html).toContain('hreflang="en"');
@@ -76,6 +79,24 @@ describe('构建时双语页面', () => {
   it('构建转换不会破坏实验室等不含占位符的入口', () => {
     const untouched = '<html lang="en"><head><title>Lab</title></head><body>Lab</body></html>';
     expect(renderSiteDocument(untouched, 'zh')).toBe(untouched);
+  });
+  it('封面中文逐字、英文逐词，但构建时保留完整标题与原有两行', () => {
+    for (const [lang, count, text] of [['zh', 8, '网球挥拍实验报告。'], ['en', 5, 'A Tennis Swing Lab Report.']] as const) {
+      const title = renderCoverTitle(lang);
+      expect(title.match(/data-title-token/g)).toHaveLength(count);
+      expect(title.match(/class="cover-title-line"/g)).toHaveLength(2);
+      expect(title.replace(/<[^>]+>/g, '')).toBe(text);
+      for (let i = 0; i < count; i++) expect(title).toContain(`--token-order:${i}`);
+      expect(renderPage(lang)).toContain(`id="cover-title" aria-label="${lang === 'zh' ? '网球挥拍实验报告' : 'A Tennis Swing Lab Report'}"`);
+    }
+  });
+  it('封面动效不隐藏文字，减少动态静止并可由滚动中断', () => {
+    const css = readFileSync(new URL('../src/styles/site.css', import.meta.url), 'utf8');
+    const animation = css.match(/@keyframes cover-token-arrive \{[^\n]+/)?.[0];
+    expect(animation).toContain('translateY(6px)');
+    expect(animation).not.toMatch(/opacity|visibility|clip/);
+    expect(css).toContain('.site-header.is-scrolled ~ main .cover-title .cover-token');
+    expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.cover-title \.cover-token,[\s\S]*?animation: none !important/);
   });
 });
 

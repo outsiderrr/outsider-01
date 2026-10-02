@@ -99,7 +99,40 @@ try {
     result.extra.push({ type: mode, ...check, threeRequests: requests.filter(url => /(?:three|\/render3d\/stage\.ts|\/stage-[\w-]+\.js)/.test(url)) });
     await context.close();
   }
+  for (const width of [820, 1024]) {
+    const context = await browser.newContext({ viewport: { width, height: 1180 }, colorScheme: width === 820 ? 'light' : 'dark' });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    await page.goto(base + 'en/', { waitUntil: 'networkidle' });
+    for (const id of ['cover', 'fig-03', 'lab']) {
+      await page.locator(`#${id}`).scrollIntoViewIfNeeded();
+      await page.waitForTimeout(800);
+      await page.screenshot({ path: resolve(out, `tablet-${width}-${id}.png`) });
+    }
+    result.extra.push({ type: 'tablet', width, errors, overflow: await page.evaluate(() => document.documentElement.scrollWidth > innerWidth) });
+    await context.close();
+  }
+  {
+    const context = await browser.newContext({ viewport: { width: 375, height: 812 } });
+    await context.addInitScript(() => {
+      const getContext = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function (kind, ...args) {
+        return /webgl/.test(kind) ? null : getContext.call(this, kind, ...args);
+      };
+    });
+    const page = await context.newPage();
+    await page.goto(base, { waitUntil: 'networkidle' });
+    await page.locator('#lab').scrollIntoViewIfNeeded();
+    await page.waitForTimeout(1000);
+    const fallback = await page.evaluate(() => ({ canvas: document.querySelectorAll('canvas').length, svg: document.querySelectorAll('.lab__stage > svg').length, notice: document.querySelector('.lab__notice')?.textContent }));
+    await page.screenshot({ path: resolve(out, 'webgl-unavailable.png') });
+    result.extra.push({ type: 'webgl-unavailable', ...fallback, passed: fallback.canvas === 0 && fallback.svg === 1 && Boolean(fallback.notice) });
+    await context.close();
+  }
 } finally {
   await writeFile(resolve(out, 'browser-audit.json'), JSON.stringify(result, null, 2));
   await browser.close();
 }
+if (result.pages.some(page => page.errors.length || page.foreign.length || page.failed.length || page.violations.length || page.semantics.overflow)) process.exitCode = 1;
+if (result.extra.some(check => check.overflow || check.errors?.length || check.passed === false)) process.exitCode = 1;

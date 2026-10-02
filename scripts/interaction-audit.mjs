@@ -83,6 +83,13 @@ try {
     await page.reload({ waitUntil: 'networkidle' });
     assert.equal(await page.locator('[data-theme-toggle]').getAttribute('data-choice'), choice);
   });
+  await check('三视图标注位于画布上方且有明确视角名称', async () => {
+    await page.locator('#lab').scrollIntoViewIfNeeded();
+    await page.waitForFunction(() => document.querySelector('#lab-mount canvas')?.dataset.ready === 'true');
+    assert.equal(await page.locator('.mini__label').count(), 3);
+    assert.deepEqual((await page.locator('.mini__label').allTextContents()).map(t => t.trim()), ['Front', 'Side', 'Top']);
+    assert.ok(await page.locator('.lab__minis').evaluate(e => Number(getComputedStyle(e).zIndex) > 0));
+  });
   await check('手机目录可展开、Escape关闭并回到按钮', async () => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.locator('[data-menu-toggle]').click();
