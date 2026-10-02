@@ -149,6 +149,8 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
   let set: KeyframeSet = getSet('forehand', 'semi');
   let t = 0;
   let playing = false;
+  let advancing = false;
+  let motionSegment = 0;
   let active = true;
   let disposed = false;
   let prewarming = true;
@@ -429,7 +431,12 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
     // 调用者明确标识随挥驻留。真正推进动作时，完整长帧必须纳入降档判断。
     governor.recordFrame(now);
     canvas.dataset.renderCount = String(Number(canvas.dataset.renderCount ?? 0) + 1);
-    canvas.dataset.renderTime = now.toFixed(2);
+    // 与绘制计数一起记录，不能用先行更新的时间线输入推断这一帧的动作状态。
+    // 这是 CPU 端完成绘制提交的时刻，不是 GPU 呈现确认。
+    canvas.dataset.renderTime = performance.now().toFixed(3);
+    canvas.dataset.renderModelTime = String(t);
+    canvas.dataset.renderAdvancing = String(advancing);
+    canvas.dataset.renderSegment = String(motionSegment);
     canvas.dataset.quality = tier;
   }
 
@@ -575,12 +582,17 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
       sceneDirty = true;
       schedule();
     },
-    setPlaying(on, advancing = on) {
+    setPlaying(on, nextAdvancing = on) {
       if (playing !== on) {
         playing = on;
         governor.reset();
       }
-      governor.setSampling(on && advancing);
+      const next = on && nextAdvancing;
+      if (next !== advancing) {
+        advancing = next;
+        motionSegment += 1;
+      }
+      governor.setSampling(advancing);
     },
     readout() {
       const pose = poseAt(set, t);

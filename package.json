@@ -6,7 +6,13 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "qa:browser": "node scripts/quality-audit.mjs",
+    "qa:interactions": "node scripts/interaction-audit.mjs",
+    "qa:budgets": "node scripts/check-budgets.mjs",
+    "qa:lighthouse": "node scripts/lighthouse-audit.mjs",
+    "qa:frames": "node scripts/runtime-performance.mjs",
+    "share:build": "node scripts/generate-social.mjs"
   },
   "type": "module",
   "private": true,

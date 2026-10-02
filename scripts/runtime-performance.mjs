@@ -15,10 +15,10 @@ const result = {
   method: {
     browser: '本机安装的桌面 Chrome；手机配置只是视口/触摸/DPR 模拟，不是实体手机、移动 GPU 或移动网络性能。',
     renderFps: 'canvas 的 data-render-count 增量 ÷ performance.now 实际经过时长；每次完整舞台绘制记一次，多视图不重复计帧。',
-    movingFps: '逐个 requestAnimationFrame 观察区间筛选模型时间发生变化的区间，累计其中的实际绘制计数和墙钟时长。排除主动驻留；不是所有 GPU 帧时间的直接采样。',
+    movingFps: '使用每次完整舞台绘制后同步记录的计数、CPU 提交完成时刻和明确动作推进区段号。只累计同一推进区段内相邻实绘记录的计数差/时长差；跨驻留的边界不计，区段内真实长帧全部保留。不使用先行更新的时间线输入判断实绘帧。',
     raf: 'requestAnimationFrame 间隔分布单独报告，只反映页面回调调度，不能冒充真实绘制帧率。',
     duration: '每种模式至少 6 秒；运动观察区间不足累计 3 秒则继续，最多 12 秒。仍不足时标记样本无效。',
-    limits: '单次本机运行会受窗口调度、显示刷新率、温度和其它进程影响；不是跨设备保证。总体 FPS 含动画有意驻留，不能仅凭它判定掉帧。',
+    limits: '统计的是 renderer 完成舞台绘制调用，不是 GPU 呈现确认。每个运动区段第一帧只有基准、没有帧间隔；跨状态而无法精确分类的绘制单列，不补帧。单次本机运行受调度、刷新率、温度和其它进程影响，不是跨设备保证。总体 FPS 含有意驻留，不能仅凭它判定掉帧。',
     fonts: 'Resource Timing 提供响应体/解码大小，Chrome DevTools Protocol 的 loadingFinished 提供含协议开销的实际传输量；缓存命中可能为 0。',
   },
   configurations: [], errors: [],
@@ -42,18 +42,20 @@ async function measure(page, selector, mode) {
   return page.evaluate(async ({ selector, mode }) => {
     const canvas = document.querySelector(selector);
     if (!(canvas instanceof HTMLCanvasElement)) throw new Error(`未找到实际画布：${selector}`);
-    const modelTime = () => mode === 'cover'
-      ? Number(canvas.dataset.time)
-      : Number(document.querySelector('.timeline__input')?.value) / 1000;
+    if (canvas.dataset.renderSegment === undefined) throw new Error('构建缺少同帧绘制诊断字段，请重新构建后测量，不能沿用旧版时间线估计。');
     const read = now => ({
-      ms: now, count: Number(canvas.dataset.renderCount ?? 0), time: modelTime(),
+      ms: now, count: Number(canvas.dataset.renderCount ?? 0),
+      time: Number(canvas.dataset.renderModelTime), renderTime: Number(canvas.dataset.renderTime),
+      advancing: canvas.dataset.renderAdvancing === 'true', segment: Number(canvas.dataset.renderSegment),
       tier: canvas.dataset.quality ?? 'unknown',
     });
     const samples = [read(performance.now())];
     const rafIntervals = [];
     const renderIntervals = [];
+    const movingRenderIntervals = [];
     let movingMs = 0, movingRenders = 0, mergedRenderObservations = 0;
-    let previousRenderTime = Number(canvas.dataset.renderTime ?? 0);
+    let boundaryRenders = 0, stationaryRenders = 0;
+    let previousDraw = samples[0];
     await new Promise(resolve => {
       const next = now => {
         const current = read(now);
@@ -61,14 +63,23 @@ async function measure(page, selector, mode) {
         const interval = current.ms - previous.ms;
         const increment = current.count - previous.count;
         if (samples.length > 1) rafIntervals.push(interval);
-        if (Number.isFinite(current.time) && Number.isFinite(previous.time) && current.time !== previous.time) {
-          movingMs += interval;
-          movingRenders += increment;
-        }
         if (increment > 1) mergedRenderObservations += 1;
-        const renderTime = Number(canvas.dataset.renderTime ?? 0);
-        if (renderTime !== previousRenderTime && previousRenderTime > 0) renderIntervals.push(renderTime - previousRenderTime);
-        previousRenderTime = renderTime;
+        if (increment > 0) {
+          const drawInterval = current.renderTime - previousDraw.renderTime;
+          const drawIncrement = current.count - previousDraw.count;
+          renderIntervals.push(drawInterval);
+          if (current.advancing && previousDraw.advancing && current.segment === previousDraw.segment) {
+            // 只用同一明确推进区段的实绘时间；不按间隔长短删帧。
+            movingMs += drawInterval;
+            movingRenders += drawIncrement;
+            movingRenderIntervals.push(drawInterval);
+          } else if (!current.advancing && !previousDraw.advancing && current.segment === previousDraw.segment) {
+            stationaryRenders += drawIncrement;
+          } else {
+            boundaryRenders += drawIncrement;
+          }
+          previousDraw = current;
+        }
         samples.push(current);
         const elapsed = now - samples[0].ms;
         if ((elapsed >= 6000 && movingMs >= 3000) || elapsed >= 12000) resolve();
@@ -94,13 +105,18 @@ async function measure(page, selector, mode) {
     return {
       mode, elapsedMs: end.ms - start.ms, renderedFrames: end.count - start.count,
       renderFps: (end.count - start.count) * 1000 / (end.ms - start.ms),
-      moving: { elapsedMs: movingMs, renderedFrames: movingRenders, renderFps: movingMs ? movingRenders * 1000 / movingMs : null, valid: movingMs >= 3000 },
+      moving: { elapsedMs: movingMs, renderedFrames: movingRenders, renderFps: movingMs ? movingRenders * 1000 / movingMs : null, valid: movingMs >= 3000, observedRenderIntervals: distribution(movingRenderIntervals) },
       rafIntervals: distribution(rafIntervals), observedRenderIntervals: distribution(renderIntervals),
-      mergedRenderObservations, tierAtStart: start.tier, tierAtEnd: end.tier,
+      boundaryRenders, stationaryRenders, mergedRenderObservations,
+      intervalDistributionNote: '若 mergedRenderObservations 非零，观察间隔可能含多个实际绘制；计数差仍保留，间隔分布不代表逐帧分布。边界计数不补到运动帧中。',
+      tierAtStart: start.tier, tierAtEnd: end.tier,
       miniViews: mode === 'cover' ? 0 : document.querySelectorAll('.lab__minis .mini').length,
       viewport: { width: innerWidth, height: innerHeight, devicePixelRatio },
       canvas: { width: canvas.width, height: canvas.height },
-      rawSamples: samples.map(sample => ({ ms: Number((sample.ms - start.ms).toFixed(3)), count: sample.count - start.count, time: sample.time })),
+      rawSamples: samples.map(sample => ({
+        ms: Number((sample.ms - start.ms).toFixed(3)), count: sample.count - start.count, time: sample.time,
+        renderMs: Number((sample.renderTime - start.renderTime).toFixed(3)), advancing: sample.advancing, segment: sample.segment,
+      })),
     };
   }, { selector, mode });
 }
