@@ -89,17 +89,32 @@ try {
       await page.locator('#fh-grid .fh-card').first().waitFor();
       await page.evaluate(() => document.fonts.ready);
       await check(entry, '文档、移动视口和原型布局', async () => {
-        const documentState = await page.evaluate(() => ({
-          doctype: document.doctype?.name,
-          lang: document.documentElement.lang,
-          viewport: document.querySelector('meta[name="viewport"]')?.content,
-          h1: document.querySelector('h1')?.textContent,
-          width: innerWidth,
-          overflow: document.documentElement.scrollWidth > innerWidth + 1,
-          cards: document.querySelectorAll('#fh-grid .fh-card').length,
-          background: getComputedStyle(document.body).backgroundColor,
-          hasGoogleFonts: [...document.querySelectorAll('link[href]')].some(link => /fonts\.(googleapis|gstatic)\.com/.test(link.href)),
-        }));
+        const documentState = await page.evaluate(() => {
+          const stage = document.querySelector('.playback .stage');
+          const legend = document.querySelector('#fh-legend');
+          const grid = document.querySelector('#fh-grid');
+          const before = (first, second) => Boolean(first && second && (first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING));
+          return {
+            doctype: document.doctype?.name,
+            lang: document.documentElement.lang,
+            viewport: document.querySelector('meta[name="viewport"]')?.content,
+            h1: document.querySelector('h1')?.textContent,
+            width: innerWidth,
+            overflow: document.documentElement.scrollWidth > innerWidth + 1,
+            cards: document.querySelectorAll('#fh-grid .fh-card').length,
+            cardOrder: [...document.querySelectorAll('#fh-grid .fh-card')].map(card => card.dataset.i),
+            background: getComputedStyle(document.body).backgroundColor,
+            hasGoogleFonts: [...document.querySelectorAll('link[href]')].some(link => /fonts\.(googleapis|gstatic)\.com/.test(link.href)),
+            layout: {
+              stage: stage?.getBoundingClientRect().toJSON(),
+              legend: legend?.getBoundingClientRect().toJSON(),
+              grid: grid?.getBoundingClientRect().toJSON(),
+              stageBeforeGrid: before(stage, grid),
+              stageBeforeLegend: before(stage, legend),
+              legendBeforeGrid: before(legend, grid),
+            },
+          };
+        });
         assert.equal(documentState.doctype, 'html');
         assert.match(documentState.lang, /^zh/i);
         assert.match(documentState.viewport, /width=device-width/);
@@ -107,12 +122,29 @@ try {
         assert.equal(documentState.width, viewport.width);
         assert.equal(documentState.overflow, false);
         assert.equal(documentState.cards, 5);
+        assert.deepEqual(documentState.cardOrder, ['0', '1', '2', '3', '4']);
         assert.equal(documentState.hasGoogleFonts, false);
         assert.equal(documentState.background, theme === 'light' ? 'rgb(243, 245, 241)' : 'rgb(17, 21, 19)');
+        const geometry = documentState.layout;
+        assert.ok(geometry.stage && geometry.legend && geometry.grid, '动画、独立图例和五阶段卡片完整存在');
+        assert.equal(geometry.stageBeforeGrid, true, '文档顺序为动画在卡片之前');
+        assert.equal(geometry.stageBeforeLegend, true, '文档顺序为动画在图例之前');
+        assert.equal(geometry.legendBeforeGrid, true, '文档顺序为图例在卡片之前');
+        assert.ok(geometry.stage.width > 0 && geometry.stage.height > 0 && geometry.legend.width > 0 && geometry.legend.height > 0);
+        assert.ok(geometry.stage.bottom <= geometry.grid.top + 1, '动画实际位于五张卡片上方');
+        assert.ok(geometry.legend.bottom <= geometry.grid.top + 1, '图例完整位于五张卡片上方');
+        if (device === 'desktop') {
+          assert.ok(geometry.stage.right <= geometry.legend.left + 1, '桌面图例位于动画右侧且互不遮挡');
+          assert.ok(Math.abs(geometry.stage.top - geometry.legend.top) <= 1, '桌面动画与图例顶部对齐');
+        } else {
+          assert.ok(geometry.stage.bottom <= geometry.legend.top + 1, '手机图例位于动画之后且互不遮挡');
+          assert.ok(geometry.legend.left >= 0 && geometry.legend.right <= viewport.width + 1, '手机图例完整位于视口内');
+        }
         return documentState;
       });
       await shot(page, entry, 'home');
       await shot(page, entry, 'full', { fullPage: true });
+      await shot(page, entry, 'cards', { selector: '#fh-grid' });
       await check(entry, '三站位的五阶段与肩髋小图、承重条同步', async () => {
         const observations = [];
         for (const [stance, values] of Object.entries(expected)) {
@@ -165,13 +197,13 @@ try {
         return { before: before.progress, moving: moving.progress, stopped: stopped.progress };
       });
       await check(entry, '承重点说明修正保留，肩髋图例可见', async () => {
-        const legend = page.locator('#fh-grid .legend');
+        const legend = page.locator('#fh-legend .legend');
         const text = await legend.textContent();
         assert.match(text, /脚下圆环中的实心点：承重位置（模型示意）/);
         assert.match(text, /肩线（末端圆点标记右肩）/);
         assert.match(text, /髋线/);
         assert.match(text, /空心脚印是左脚、实心是右脚/);
-        await shot(page, entry, 'legend', { selector: '#fh-grid .legend' });
+        await shot(page, entry, 'legend', { selector: '#fh-legend .legend' });
         return { text };
       });
       await page.locator('#fh-grid .fh-card[data-i="1"]').click();

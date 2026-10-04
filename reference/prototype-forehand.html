@@ -4,7 +4,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500&family=Noto+Serif+SC:wght@600;700&display=swap">
 <style>
-/* 单栏学习页：标题 → 站位切换 → 五格分解图 → 慢动作舞台 → 讲解表格；中性色略偏硬地球场的灰绿 */
+/* 学习页：标题 → 站位切换 → 慢动作舞台与右侧图例 → 五格分解图 → 讲解表格；中性色略偏硬地球场的灰绿 */
 :root{
   --bg:#F3F5F1;--surface-2:#FFFFFF;--surface-1:#E5EBE4;
   --text-primary:#1B2420;--text-secondary:#56615B;--text-muted:#848D87;
@@ -34,12 +34,15 @@ button:hover{background:var(--surface-1)}
 button:focus-visible,.fh-card:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 input[type=range]{accent-color:var(--accent);min-width:0}
 #fh-st{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}
+.playback{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:10px;align-items:start;margin-top:14px}
+#fh-legend{min-width:0}
 #fh-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
+@media (max-width:700px){.playback{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:560px){#fh-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .fh-card{background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:6px 10px 10px;cursor:pointer;min-width:0}
 .legend{padding:8px 4px;font-size:12px;color:var(--text-secondary);line-height:1.5;display:flex;flex-direction:column;gap:6px;justify-content:center;min-width:0}
 .legend div{display:flex;gap:8px;align-items:center}
-.stage{margin-top:14px;background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:12px 14px 14px}
+.stage{min-width:0;background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:12px 14px 14px}
 .row{display:flex;align-items:center;gap:10px}
 .meta{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;margin:6px 0 12px;font-size:13px;color:var(--text-secondary)}
 #fh-chain{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
@@ -59,8 +62,8 @@ ul.tips li+li{margin-top:4px}
 <p class="lede">右手正手的五个阶段：准备、引拍、蹬地转髋、击球、随挥。切换站位看脚步和重心怎么变，播放慢动作看力量怎么从腿传到拍头。</p>
 
 <div id="fh-st" role="group" aria-label="选择站位"><button data-s="semi">半开放式</button><button data-s="neutral">中性站位</button><button data-s="open">开放式</button></div>
-<div id="fh-grid"></div>
 
+<div class="playback">
 <div class="stage">
 <div id="fh-title" style="font-weight:500;font-size:15px"></div>
 <div id="fh-cue" style="font-size:13px;color:var(--text-secondary)"></div>
@@ -72,6 +75,9 @@ ul.tips li+li{margin-top:4px}
 <button id="fh-speed">慢动作</button>
 </div>
 </div>
+<aside id="fh-legend" aria-label="图示说明"></aside>
+</div>
+<div id="fh-grid"></div>
 
 <section>
 <h2 id="fh-phase-h">半开放式的 5 个阶段</h2>
@@ -212,7 +218,7 @@ return s+'</g>';
 }
 let path=[];function computePath(){const a=[];for(let i=0;i<=160;i++)a.push(solve(poseAt(TK[1]+(TEND-TK[1])*i/160)).RC);return a;}
 const PC={phi:30,e:12,s:0.8,cx:112,gy:228},SC={phi:30,e:12,s:1.4,cx:300,gy:344};
-const grid=document.getElementById('fh-grid');
+const grid=document.getElementById('fh-grid'),legend=document.getElementById('fh-legend');
 const sw=(c,dash)=>`<svg width="22" height="10" style="flex:none" aria-hidden="true"><line x1="2" y1="5" x2="20" y2="5" stroke="${c}" stroke-width="${dash?1.2:4}" stroke-linecap="round"${dash?' stroke-dasharray="3 3"':''}/></svg>`;
 const LEG=`<div class="legend">
 <div>${sw(CO)}正在发力或蓄力的部位</div>
@@ -221,14 +227,14 @@ const LEG=`<div class="legend">
 <div>${sw('var(--text-secondary)')}髋线</div>
 <div>${sw('var(--text-secondary)',1)}拍头走过的路线</div>
 <div><svg width="22" height="12" style="flex:none" aria-hidden="true"><circle cx="11" cy="6" r="5" fill="none" stroke="var(--text-primary)" stroke-opacity="0.35"/><circle cx="11" cy="6" r="2.3" fill="var(--text-primary)"/></svg>脚下圆环中的实心点：承重位置（模型示意）</div>
-<div style="color:var(--text-muted);font-size:12px;display:block">右上角小圆是从头顶往下看，空心脚印是左脚、实心是右脚。点任一张图，下面的大图跳到那一刻。</div></div>`;
+<div style="color:var(--text-muted);font-size:12px;display:block">右上角小圆是从头顶往下看，空心脚印是左脚、实心是右脚。点任一张图，上方的动画跳到那一刻。</div></div>`;
 function buildPanels(){
 let cards='';
 K.forEach((k,i)=>{
 const ball=i===3?{p:add(solve(k).RC,mul(solve(k).fn,5)),op:1,front:1}:null;
 cards+=`<div class="fh-card" data-i="${i}" role="button" tabindex="0"><svg viewBox="0 0 220 240" width="100%" role="img" aria-label="${ST[cur].name} 阶段${i+1} ${k.n}">${render(k,PC,{path:path,inset:{cx:188,cy:40,r:22},ball:ball})}</svg><div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px;flex-wrap:wrap"><span style="font-size:14px;font-weight:500">${i+1} · ${k.n}</span>${k.bk?`<span style="font-size:12px;color:var(--text-muted)">${k.bk}</span>`:''}</div><div style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin-top:2px">${k.c}</div></div>`;
 });
-grid.innerHTML=cards+LEG;
+grid.innerHTML=cards;legend.innerHTML=LEG;
 grid.querySelectorAll('.fh-card').forEach(c=>{const go=()=>{setPlay(false);t=TK[+c.dataset.i];draw();};c.onclick=go;c.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go();}};});
 }
 const stage=document.getElementById('fh-stage'),chain=document.getElementById('fh-chain'),slider=document.getElementById('fh-t'),bp=document.getElementById('fh-play'),bs=document.getElementById('fh-speed');

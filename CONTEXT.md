@@ -54,6 +54,12 @@
 - 原型图例改为“脚下圆环中的实心点：承重位置（模型示意）”，图例补齐同款圆环，浅深主题保持一致；英文二维图内肩髋差标签缩短，避免角度被裁切。新增六项绘图回归，该轮共 167 项测试。
 - 浏览器证据在 `artifacts/quality/diagram-markers-fixed/`：原型四组、正式二维页面中英文八组，全部播放、时间轴、标签边界与圆点检查通过。此前三维模式加载后移除独立俯视小图的问题仍待单独接回；本轮只是当前预览与二维共用图的专项修正，不代表该项已完成。
 
+### 2026-10-04 二维原型动画优先布局
+
+- 用户要求先看动画、后看静态图片，图示说明保持靠前和右侧。`reference/prototype-forehand.html` 现为站位按钮 → 动画与右侧独立图例 → 五张阶段图片 → 讲解表格；700px 及以下图例放在动画之后、静态图片之前。
+- 点击图片仍将上方动画跳到对应阶段，五张图片保持阶段 1–5 顺序。动作数据、肩髋图形与播放逻辑保持原有行为。
+- 本地四组合（1440×900 / 375×812 × 浅深色）真实浏览器截图与交互全部通过，证据见 `artifacts/quality/prototype-animation-first-local/`；线上版本以第 8 节最新发布记录为准。
+
 ### 里程碑 3 已完成
 - `src/story/progress.ts`：滚动进度工具（`sectionProgress`、`stepAt`、`focusIndex`、`timeAlong`），有测试。
 - `src/i18n/zh.ts`、`en.ts`：**全站文案已写完**（site、cover、abstract、chain、stances、phases、conclusion、notes、footer），两种语言键完全一致（`tests/i18n.test.ts` 保证）。
