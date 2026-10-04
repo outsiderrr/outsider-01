@@ -5,6 +5,7 @@
     "test": "vitest run",
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "build:prototype": "node scripts/build-prototype.ts",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "qa:browser": "node scripts/quality-audit.mjs",

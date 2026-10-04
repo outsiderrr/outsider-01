@@ -1,0 +1,6 @@
+  # BEGIN OUTSIDER01 STATIC SITE
+  redir /outsider-01 /outsider-01/ 308
+  handle_path /outsider-01/* {
+    reverse_proxy outsider01-static:8080
+  }
+  # END OUTSIDER01 STATIC SITE

@@ -138,5 +138,11 @@ docs/             设计方案、各里程碑计划、品质日志
 - 书目信息（出版社、年份、译者）待用户提供版权页核对。没有创建远程仓库、推送或发布。
 
 ## 8. 发布（里程碑 6，先问用户）
+
+### 最新发布选择（2026-10-04）
+
+用户已授权部署到东京阿里云 8G 服务器，并再次明确选择 **4175 的中文二维原型**，不是 4173 的完整三维网站。正在以 `npm run build:prototype` 的独立产物部署到 `https://8.209.239.47/outsider-01/`；方案与实际状态以 `docs/DEPLOY.md` 为准。完整三维站的 M5 待办继续保留，GitHub 发布仍须单独授权。
+
+### 原 GitHub Pages 方案（本次不执行）
 - 建公开仓库 `outsiderrr/outsider-01`（本机 `gh` 已登录 outsiderrr），推送 main，用 GitHub Actions 构建并发布到 Pages；网址 `https://outsiderrr.github.io/outsider-01/`，英文版 `/en/`。
 - 提醒用户：国内不开 VPN 可能访问慢；以后可绑定自有域名。
