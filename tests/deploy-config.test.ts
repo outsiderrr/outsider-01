@@ -26,7 +26,8 @@ describe('二维原型部署隔离配置', () => {
     expect(staticConfig).toContain('respond "Method Not Allowed" 405');
   });
   it('HTML每次校验，内容哈希资源独立长期缓存', () => {
-    expect(staticConfig).toContain('Cache-Control no-cache');
+    expect(staticConfig).toContain('@document not path /assets/*');
+    expect(staticConfig).toContain('header @document Cache-Control no-cache');
     expect(staticConfig).toContain('@assets path /assets/*');
     expect(staticConfig).toContain('header @assets Cache-Control "public, max-age=31536000, immutable"');
   });
