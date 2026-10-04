@@ -195,7 +195,7 @@ export function mountLab(root: HTMLElement, lang: Lang, opts: LabOptions = {}): 
       path,
       trail,
       inset: { cx: 590, cy: 66, r: 40, big: true },
-      labels: { net: T('lab.net'), separation: T('lab.separation') },
+      labels: { net: T('lab.net'), separation: lang === 'en' ? 'Separation' : T('lab.separation') },
       bothArms: stroke === 'backhand',
     });
   }

@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>网球正手三种站位</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -197,18 +198,17 @@ return out;
 function inset(p,o){
 const{cx,cy,r,big}=o,fs=big?13:11;
 const ln=(yaw,l)=>[Math.cos(yaw*R)*l,Math.sin(yaw*R)*l];
-const h=ln(p.pel[3],r*0.55),sh=ln(p.tor[0],r*0.8),nz=[Math.sin(p.hd*R)*r*0.2,-Math.cos(p.hd*R)*r*0.2];
+const h=ln(p.pel[3],r*0.55),sh=ln(p.tor[0],r*0.8);
 const x=Math.round(p.tor[0]-p.pel[3]);
-let s=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--border-strong)" stroke-width="0.8"/>`;
+let s=`<g data-diagram="shoulder-hip"><circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--border-strong)" stroke-width="0.8"/>`;
 const kk=r/60;[[p.lf,0],[p.rf,1]].forEach(([q,solid])=>{const x2=cx+(q[0]-p.pel[0])*kk,y2=cy-(q[1]-p.pel[1])*kk;s+=`<ellipse cx="${f(x2)}" cy="${f(y2)}" rx="${f(r*0.08)}" ry="${f(r*0.19)}" transform="rotate(${f(q[2])} ${f(x2)} ${f(y2)})" fill="${solid?T2:'none'}" stroke="${T2}" stroke-width="1"/>`;});
 s+=`<line x1="${f(cx-h[0])}" y1="${f(cy-h[1])}" x2="${f(cx+h[0])}" y2="${f(cy+h[1])}" stroke="${T2}" stroke-width="${big?5:3.5}" stroke-linecap="round"/>`;
 s+=`<line x1="${f(cx-sh[0])}" y1="${f(cy-sh[1])}" x2="${f(cx+sh[0])}" y2="${f(cy+sh[1])}" stroke="${PU}" stroke-width="${big?3.5:2.5}" stroke-linecap="round"/>`;
 s+=`<circle cx="${f(cx+sh[0])}" cy="${f(cy+sh[1])}" r="${big?4:2.8}" fill="${PU}"/>`;
-s+=`<circle cx="${cx}" cy="${cy}" r="${f(r*0.16)}" fill="${SF}" stroke="${T1}" stroke-width="1"/><circle cx="${f(cx+nz[0])}" cy="${f(cy+nz[1])}" r="${big?2:1.5}" fill="${T1}"/>`;
 s+=`<path d="M${cx-4} ${cy-r-5} L${cx} ${cy-r-11} L${cx+4} ${cy-r-5}" fill="none" stroke="${T2}" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>`;
 s+=`<text x="${cx+8}" y="${cy-r-5}" style="font-size:${fs}px;fill:var(--text-secondary)">球网</text>`;
 s+=`<text x="${cx}" y="${cy+r+15+(big?2:0)}" text-anchor="middle" style="font-size:${fs}px;fill:var(--text-secondary)">肩髋差 ${Math.abs(x)}°</text>`;
-return s;
+return s+'</g>';
 }
 let path=[];function computePath(){const a=[];for(let i=0;i<=160;i++)a.push(solve(poseAt(TK[1]+(TEND-TK[1])*i/160)).RC);return a;}
 const PC={phi:30,e:12,s:0.8,cx:112,gy:228},SC={phi:30,e:12,s:1.4,cx:300,gy:344};
@@ -217,10 +217,10 @@ const sw=(c,dash)=>`<svg width="22" height="10" style="flex:none" aria-hidden="t
 const LEG=`<div class="legend">
 <div>${sw(CO)}正在发力或蓄力的部位</div>
 <div>${sw(TE)}正在踩刹车减速的部位</div>
-<div>${sw(PU)}肩线（右端圆点是右肩）</div>
+<div>${sw(PU)}肩线（末端圆点标记右肩）</div>
 <div>${sw('var(--text-secondary)')}髋线</div>
 <div>${sw('var(--text-secondary)',1)}拍头走过的路线</div>
-<div><svg width="22" height="10" style="flex:none" aria-hidden="true"><circle cx="11" cy="5" r="3.5" fill="var(--text-primary)"/></svg>地上的黑点：重心落在哪</div>
+<div><svg width="22" height="12" style="flex:none" aria-hidden="true"><circle cx="11" cy="6" r="5" fill="none" stroke="var(--text-primary)" stroke-opacity="0.35"/><circle cx="11" cy="6" r="2.3" fill="var(--text-primary)"/></svg>脚下圆环中的实心点：承重位置（模型示意）</div>
 <div style="color:var(--text-muted);font-size:12px;display:block">右上角小圆是从头顶往下看，空心脚印是左脚、实心是右脚。点任一张图，下面的大图跳到那一刻。</div></div>`;
 function buildPanels(){
 let cards='';

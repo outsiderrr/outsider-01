@@ -121,10 +121,9 @@ function inset(p: Pose, o: NonNullable<FigureOptions['inset']>, labels: { net: s
   const ln = (yaw: number, l: number) => [Math.cos(rad(yaw)) * l, Math.sin(rad(yaw)) * l];
   const h = ln(p.pel[3], r * 0.55);
   const sh = ln(p.tor[0], r * 0.8);
-  const nz = [Math.sin(rad(p.hd)) * r * 0.2, -Math.cos(rad(p.hd)) * r * 0.2];
   const sep = Math.round(Math.abs(p.tor[0] - p.pel[3]));
   const kk = r / 60;
-  let svg = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${C.hip}" stroke-width="0.8"/>`;
+  let svg = `<g data-diagram="shoulder-hip"><circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${C.hip}" stroke-width="0.8"/>`;
   for (const [q, solid] of [[p.lf, false], [p.rf, true]] as const) {
     const x = cx + (q[0] - p.pel[0]) * kk;
     const y = cy - (q[1] - p.pel[1]) * kk;
@@ -133,9 +132,8 @@ function inset(p: Pose, o: NonNullable<FigureOptions['inset']>, labels: { net: s
   svg += `<line x1="${f(cx - h[0])}" y1="${f(cy - h[1])}" x2="${f(cx + h[0])}" y2="${f(cy + h[1])}" stroke="${C.hip}" stroke-width="${big ? 5 : 3.5}" stroke-linecap="round"/>`;
   svg += `<line x1="${f(cx - sh[0])}" y1="${f(cy - sh[1])}" x2="${f(cx + sh[0])}" y2="${f(cy + sh[1])}" stroke="${C.shoulder}" stroke-width="${big ? 3.5 : 2.5}" stroke-linecap="round"/>`;
   svg += `<circle cx="${f(cx + sh[0])}" cy="${f(cy + sh[1])}" r="${big ? 4 : 2.8}" fill="${C.shoulder}"/>`;
-  svg += `<circle cx="${cx}" cy="${cy}" r="${f(r * 0.16)}" fill="${C.fill}" stroke="${C.near}" stroke-width="1"/><circle cx="${f(cx + nz[0])}" cy="${f(cy + nz[1])}" r="${big ? 2 : 1.5}" fill="${C.near}"/>`;
   svg += `<path d="M${cx - 4} ${cy - r - 5} L${cx} ${cy - r - 11} L${cx + 4} ${cy - r - 5}" fill="none" stroke="${C.text2}" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>`;
   svg += `<text x="${cx + 8}" y="${cy - r - 5}" style="font-size:${fs}px;fill:${C.text2}">${labels.net}</text>`;
   svg += `<text x="${cx}" y="${cy + r + 15}" text-anchor="middle" style="font-size:${fs}px;fill:${C.text2}">${labels.separation} ${sep}°</text>`;
-  return svg;
+  return svg + '</g>';
 }

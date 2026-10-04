@@ -48,6 +48,12 @@
 - 最终首页八组合（`lab-restore-fixed`）和报告八组合（`lab-restore-report-fixed`）截图、交互与降级通过；161 项测试、类型检查与构建通过。首页四组 Lighthouse 分数 94–99 / 100 / 100 / 100；中文深色 LCP 2.55 秒仍略超预算，保留待办，不放宽或擅自合并。完整记录见品质日志。
 - 独立视觉复核为 8.1 / 8.0 / 8.1 / 8.2，当前检查范围没有视觉 P0/P1。P2：手机时间轴与完整舞台需滚动切换，1024 平板舞台下方留白偏多，无脚本引拍俯视线稿可再优化。
 
+### 2026-10-04 原型俯视圆点说明修正
+
+- 用户当前查看的是 `http://127.0.0.1:4175/`，对应 `reference/prototype-forehand.html`。原型与共用二维渲染器已同时移除俯视小图的中心头部圆和鼻尖方向点，保留肩线末端的右肩标记、脚印、肩髋线和脚下承重标记。
+- 原型图例改为“脚下圆环中的实心点：承重位置（模型示意）”，图例补齐同款圆环，浅深主题保持一致；英文二维图内肩髋差标签缩短，避免角度被裁切。新增六项绘图回归，当前共 167 项测试。
+- 浏览器证据在 `artifacts/quality/diagram-markers-fixed/`：原型四组、正式二维页面中英文八组，全部播放、时间轴、标签边界与圆点检查通过。此前三维模式加载后移除独立俯视小图的问题仍待单独接回；本轮只是当前预览与二维共用图的专项修正，不代表该项已完成。
+
 ### 里程碑 3 已完成
 - `src/story/progress.ts`：滚动进度工具（`sectionProgress`、`stepAt`、`focusIndex`、`timeAlong`），有测试。
 - `src/i18n/zh.ts`、`en.ts`：**全站文案已写完**（site、cover、abstract、chain、stances、phases、conclusion、notes、footer），两种语言键完全一致（`tests/i18n.test.ts` 保证）。
@@ -71,7 +77,7 @@ cd /Users/outsider/通用空间/outsider-01
 npm install            # 首次
 npm run dev            # http://localhost:5173 ；实验室在 /lab.html ；动作检查台在 /dev/viewer.html
 npx tsc --noEmit       # 类型检查（TypeScript 7）
-npx vitest run         # 当前 161 项，包含原六条模型约束及首页/示意图回归
+npx vitest run         # 当前 167 项，包含原六条模型约束及首页/示意图回归
 npx vite build         # 构建到 dist/（base 为 /outsider-01/）
 ```
 
