@@ -80,7 +80,7 @@ function scanCode(text, file) {
 }
 
 const pages = [];
-for (const entry of ['index.html', 'en/index.html']) {
+for (const entry of ['index.html', 'en/index.html', 'report.html', 'en/report.html']) {
   const file = resolve(dist, entry);
   const text = buffers.get(file)?.toString('utf8');
   if (!text) throw new Error(`找不到构建入口 ${entry}，请先运行构建。`);

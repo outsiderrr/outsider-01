@@ -11,6 +11,8 @@ export default defineConfig(({ command, isPreview }) => ({
       input: {
         index: resolve(import.meta.dirname, 'index.html'),
         en: resolve(import.meta.dirname, 'en/index.html'),
+        report: resolve(import.meta.dirname, 'report.html'),
+        enReport: resolve(import.meta.dirname, 'en/report.html'),
         lab: resolve(import.meta.dirname, 'lab.html'),
       },
     },

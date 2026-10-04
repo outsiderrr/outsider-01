@@ -85,7 +85,7 @@ function phaseSection(lang: Lang, stroke: Stroke): string {
 /** 页面正文在构建时写入，交互脚本只做渐进增强。 */
 export function renderPage(lang: Lang): string {
   const T = (key: string) => t(lang, key);
-  const other = lang === 'zh' ? 'en/' : '../';
+  const other = lang === 'zh' ? 'en/report.html' : '../report.html';
   const numbers = modelNumbers('forehand', 'semi');
   const chainKeys = ['legs', 'hips', 'trunk', 'arm', 'head'];
   const chartKeys = ['pelvis', 'torso', 'arm', 'head'];
@@ -96,7 +96,7 @@ export function renderPage(lang: Lang): string {
   const geometryNote = lang === 'zh' ? '重心位置按模型双脚承重比例估算；前方指朝球网方向。' : 'Weight position is estimated from the model’s foot-loading ratio; “ahead” means toward the net.';
   return `<a class="skip-link" href="#main">${escape(T('site.skip'))}</a>
   <header class="site-header"><div class="header-inner">
-    <a class="site-brand" href="#cover" aria-label="${escape(T('site.title'))}"><span class="brand-mark" aria-hidden="true">↗</span><span>${escape(T('site.project'))}</span></a>
+    <a class="site-brand" href="./" aria-label="${escape(T('lab.title'))}"><span class="brand-mark" aria-hidden="true">↗</span><span>${escape(T('lab.title'))}</span></a>
     <button class="btn menu-toggle" type="button" data-menu-toggle aria-controls="site-nav" aria-expanded="false">${escape(T('site.navLabel'))}<span aria-hidden="true">＋</span></button>
     <nav id="site-nav" class="site-nav" aria-label="${escape(T('site.navLabel'))}">${NAV.map(([id, key]) => `<a href="#${id}" data-nav-link="${id}">${escape(T(`site.nav.${key}`))}</a>`).join('')}</nav>
     <div class="header-tools"><a class="lang-switch" href="${other}" data-lang-link lang="${lang === 'zh' ? 'en' : 'zh-CN'}" hreflang="${lang === 'zh' ? 'en' : 'zh-CN'}" aria-label="${escape(T('site.lang.otherName'))}">${escape(T('site.lang.other'))}</a><button class="btn btn--icon theme-toggle" type="button" data-theme-toggle aria-label="${escape(T('site.theme.label'))} · ${escape(T('site.theme.system'))}"><span aria-hidden="true">◐</span></button></div>
@@ -156,15 +156,15 @@ export function renderPage(lang: Lang): string {
 
 export function renderSiteDocument(shell: string, lang: Lang): string {
   if (!shell.includes('<!--site-->')) return shell;
-  const url = SITE_URL + (lang === 'en' ? 'en/' : '');
+  const url = SITE_URL + (lang === 'en' ? 'en/' : '') + 'report.html';
   const title = escape(t(lang, 'site.title'));
   const description = escape(t(lang, 'site.description'));
   const metadata = `<script>document.documentElement.classList.add('js');try{const t=localStorage.getItem('outsider01-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch{}</script>
     <meta name="description" content="${description}"/>
     <link rel="canonical" href="${url}"/>
-    <link rel="alternate" hreflang="zh-CN" href="${SITE_URL}"/>
-    <link rel="alternate" hreflang="en" href="${SITE_URL}en/"/>
-    <link rel="alternate" hreflang="x-default" href="${SITE_URL}"/>
+    <link rel="alternate" hreflang="zh-CN" href="${SITE_URL}report.html"/>
+    <link rel="alternate" hreflang="en" href="${SITE_URL}en/report.html"/>
+    <link rel="alternate" hreflang="x-default" href="${SITE_URL}report.html"/>
     <meta property="og:type" content="website"/><meta property="og:title" content="${title}"/>
     <meta property="og:description" content="${description}"/><meta property="og:url" content="${url}"/>
     <meta property="og:locale" content="${lang === 'zh' ? 'zh_CN' : 'en_US'}"/>

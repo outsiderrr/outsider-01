@@ -361,6 +361,63 @@
   margin-top: 12px;
 }
 
+.lab__diagram-key {
+  padding: 14px 18px;
+  border: 1px solid var(--line-strong);
+  border-top: 0;
+  background: var(--panel);
+  color: var(--text-2);
+  font-size: var(--fs-12);
+  line-height: 1.6;
+}
+
+.lab__diagram-key[hidden] { display: none; }
+
+.lab__diagram-key ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lab__diagram-key li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lab__diagram-key p { margin-top: 8px; }
+
+.lab__key-mark {
+  position: relative;
+  display: inline-block;
+  flex: 0 0 26px;
+  width: 26px;
+  height: 0;
+  border-top: 2px solid var(--ink);
+}
+
+.lab__key-mark--hip { border-color: var(--text-2); border-top-style: dashed; }
+.lab__key-mark--arc { height: 9px; border-color: var(--signal); border-radius: 50%; }
+.lab__key-mark--weight { border-top: 1px solid var(--text-2); }
+.lab__key-mark--weight::after {
+  content: '';
+  position: absolute;
+  left: 10px;
+  top: -4px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ink);
+}
+.lab__key-mark--trail {
+  height: 8px;
+  border: 0;
+  background: linear-gradient(to right, transparent, var(--signal));
+}
+
 @media (max-width: 960px) {
   .lab {
     padding: var(--gap-8) var(--gap-4) var(--gap-12);

@@ -1,11 +1,12 @@
 import type { Plugin, ViteDevServer } from 'vite';
 import { renderSiteDocument } from './src/site/template';
+import { renderLabHomeDocument } from './src/site/labHome';
 
 /** 查询参数与锚点不参与语言判定；路径段必须精确为 en。 */
 export function siteLanguage(path: string, filename = ''): 'zh' | 'en' {
   const pathname = path.split(/[?#]/, 1)[0].replace(/\\/g, '/');
   const diskPath = filename.split(/[?#]/, 1)[0].replace(/\\/g, '/');
-  return /(?:^|\/)en(?:\/|$)/.test(pathname) || /(?:^|\/)en\/index\.html$/.test(diskPath) ? 'en' : 'zh';
+  return /(?:^|\/)en(?:\/|$)/.test(pathname) || /(?:^|\/)en\/(?:index|report)\.html$/.test(diskPath) ? 'en' : 'zh';
 }
 
 /** 开发时走 SSR 模块图，文案、模型与模板变化会重新生成 HTML。 */
@@ -17,8 +18,13 @@ export function sitePlugin(): Plugin {
     transformIndexHtml: {
       order: 'pre',
       async handler(html, context) {
-        if (!html.includes('<!--site-->')) return html;
+        const home = html.includes('<!--lab-home-->');
+        if (!home && !html.includes('<!--site-->')) return html;
         const lang = siteLanguage(context.path, context.filename);
+        if (home) {
+          const render = server ? (await server.ssrLoadModule('/src/site/labHome.ts')).renderLabHomeDocument as typeof renderLabHomeDocument : renderLabHomeDocument;
+          return render(html, lang);
+        }
         const render = server ? (await server.ssrLoadModule('/src/site/template.ts')).renderSiteDocument as typeof renderSiteDocument : renderSiteDocument;
         return render(html, lang);
       },
@@ -62,7 +68,7 @@ export function inlineReportStylesPlugin(): Plugin {
             styles.set(asset.fileName, typeof asset.source === 'string' ? asset.source : new TextDecoder().decode(asset.source));
           }
         }
-        for (const name of ['index.html', 'en/index.html']) {
+        for (const name of ['index.html', 'en/index.html', 'report.html', 'en/report.html']) {
           const page = bundle[name];
           if (page?.type === 'asset' && typeof page.source === 'string') page.source = inlineReportStyles(page.source, base, styles);
         }

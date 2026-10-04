@@ -180,7 +180,7 @@ try {
     const entry = { ...config, measurements: [], offscreen: [], firstScreenFonts: null, allFonts: null, externalRequests, pageErrors };
     result.configurations.push(entry);
     try {
-      await page.goto(base, { waitUntil: 'networkidle' });
+      await page.goto(base + 'report.html', { waitUntil: 'networkidle' });
       await page.evaluate(() => document.fonts.ready);
       await scrollToCanvas(page, '#cover [data-story-slot]');
       await settleCanvas(page, '#cover canvas');

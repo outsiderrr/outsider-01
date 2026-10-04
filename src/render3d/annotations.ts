@@ -31,6 +31,7 @@ function setLine(line: Line2, pts: Vec3[]): void {
     arr.push(v.x, v.y, v.z);
   }
   line.geometry.setPositions(arr);
+  if (line.material.dashed) line.computeLineDistances();
 }
 
 /** 地面注释：肩线、髋线的投影和它们的夹角弧，两脚之间的重心条 */
@@ -46,8 +47,18 @@ export class FloorAnnotations {
   private readonly ringMat = new THREE.MeshBasicMaterial({ color: '#1d3f94', transparent: true, opacity: 0.5 });
   private readonly dot = new THREE.Mesh(new THREE.CircleGeometry(0.028, 24), this.dotMat);
   private readonly ring = new THREE.Mesh(new THREE.RingGeometry(0.046, 0.054, 40), this.ringMat);
+  private readonly viewDirection = new THREE.Vector3();
 
   constructor() {
+    this.shoulder.name = 'shoulder-projection';
+    this.hip.name = 'hip-projection';
+    this.arc.name = 'separation-arc';
+    this.weight.name = 'weight-bar';
+    this.dot.name = 'weight-point';
+    // 髋轴使用虚线，与肩轴实线形成可辨认的线型；尺寸单位为米。
+    this.hip.material.dashed = true;
+    this.hip.material.dashSize = 0.05;
+    this.hip.material.gapSize = 0.035;
     for (const m of [this.dot, this.ring]) {
       m.rotation.x = -Math.PI / 2;
       m.renderOrder = 3;
@@ -95,9 +106,19 @@ export class FloorAnnotations {
     for (const l of [this.shoulder, this.hip, this.arc, this.weight]) l.material.resolution.set(w, h);
   }
 
+  /** 每个视图绘制前独立设置：高俯视下叠加投影线，其余视角保留地面深度关系。 */
+  prepareView(camera: THREE.Camera): void {
+    const overlay = camera.getWorldDirection(this.viewDirection).y < -0.85;
+    for (const line of [this.shoulder, this.hip, this.arc]) {
+      line.material.depthTest = !overlay;
+      line.material.depthWrite = !overlay;
+      line.material.opacity = overlay ? 0.9 : 1;
+    }
+  }
+
   setPalette(p: Palette): void {
     this.shoulder.material.color.copy(p.ink);
-    this.hip.material.color.copy(p.faint);
+    this.hip.material.color.copy(p.text2);
     this.arc.material.color.copy(p.signal);
     this.weight.material.color.copy(p.text2);
     this.weight.material.opacity = 0.7;

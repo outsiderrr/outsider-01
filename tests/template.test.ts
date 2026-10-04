@@ -13,6 +13,7 @@ describe('构建时双语页面', () => {
       expect(siteLanguage(path)).toBe('en');
     }
     expect(siteLanguage('/index.html', '/project/en/index.html')).toBe('en');
+    expect(siteLanguage('/report.html', '/project/en/report.html')).toBe('en');
     expect(siteLanguage('/?lang=en')).toBe('zh');
     expect(siteLanguage('/outsider-01/?force2d=1')).toBe('zh');
     expect(siteLanguage('/energy/')).toBe('zh');
@@ -43,7 +44,9 @@ describe('构建时双语页面', () => {
       expect(html).toContain('rel="canonical"');
       expect(html).toContain('hreflang="zh-CN"');
       expect(html).toContain('hreflang="en"');
-      expect(html).toContain(`href="${lang === 'zh' ? 'en/' : '../'}" data-lang-link`);
+      expect(html).toContain(`href="${lang === 'zh' ? 'en/report.html' : '../report.html'}" data-lang-link`);
+      expect(html).toContain(`rel="canonical" href="https://outsiderrr.github.io/outsider-01/${lang === 'en' ? 'en/' : ''}report.html"`);
+      expect(html).toContain('class="site-brand" href="./"');
       expect(html).not.toContain('<!--site-->');
       expect(html).not.toContain('placeholder');
     });
@@ -55,7 +58,7 @@ describe('构建时双语页面', () => {
     expect(renderPage('en')).not.toContain('三句话讲完');
   });
   it('开发入口不依赖 JavaScript 加载基础样式', () => {
-    for (const path of ['../index.html', '../en/index.html']) {
+    for (const path of ['../report.html', '../en/report.html']) {
       const entry = readFileSync(new URL(path, import.meta.url), 'utf8');
       expect(entry).toContain('<link rel="stylesheet" href="/src/styles/base.css"');
       expect(entry).toContain('<link rel="stylesheet" href="/src/styles/site.css"');

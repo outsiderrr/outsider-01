@@ -16,7 +16,7 @@ const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 const errors = [];
 page.on('pageerror', error => errors.push(error.message));
 try {
-  await page.goto(base, { waitUntil: 'networkidle' });
+  await page.goto(base + 'report.html', { waitUntil: 'networkidle' });
   await check('单画布迁移且章节高度稳定', async () => {
     await page.waitForSelector('.stage-slot canvas');
     const before = await page.locator('#fig-03').evaluate(e => e.offsetHeight);
@@ -32,9 +32,9 @@ try {
     await page.evaluate(() => scrollBy(0, 150));
     await page.waitForTimeout(200);
     const link = page.locator('.site-header [data-lang-link]');
-    assert.match(await link.getAttribute('href'), /en\/#fig-02/);
+    assert.match(await link.getAttribute('href'), /en\/report\.html#fig-02/);
     await link.click();
-    await page.waitForURL('**/en/#fig-02');
+    await page.waitForURL('**/en/report.html#fig-02');
     assert.equal(await page.locator('html').getAttribute('lang'), 'en');
     await page.waitForTimeout(600);
   });

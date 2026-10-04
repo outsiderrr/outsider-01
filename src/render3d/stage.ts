@@ -335,8 +335,11 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
     }
     const rightBand = rects.length && !bottomBand ? rects[0].w + 28 : 0;
     mainBounds = { x: 0, y: topBand, w: Math.max(1, width - rightBand), h: Math.max(1, height - topBand - bottomBand) };
-    const heightScale = height / mainBounds.h;
-    rig.setAspect(width / height, (rightBand * rig.frameHeight * heightScale) / (height * 2), ((topBand - bottomBand) * rig.frameHeight * heightScale) / (height * 2), heightScale);
+    // 宽舞台恢复原版的大幅人偶构图；文字仍受 mainBounds 的 HUD 边界约束。
+    // 窄舞台继续为顶部说明和底部三视图完整留位。
+    const cameraTopBand = width >= 720 ? 0 : topBand;
+    const heightScale = height / Math.max(1, height - cameraTopBand - bottomBand);
+    rig.setAspect(width / height, (rightBand * rig.frameHeight * heightScale) / (height * 2), ((cameraTopBand - bottomBand) * rig.frameHeight * heightScale) / (height * 2), heightScale);
     opts.onLayout?.(rects);
   }
 
@@ -395,6 +398,7 @@ export function createStage(container: HTMLElement, opts: StageOptions = {}): St
     const wpp = (camera.top - camera.bottom) / camera.zoom / h;
     OUTLINE_WIDTH.value = outlinePx * wpp;
     notes.setResolution(w, h);
+    notes.prepareView(camera);
     renderer.render(scene, camera);
   }
 

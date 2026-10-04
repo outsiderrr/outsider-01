@@ -28,7 +28,7 @@ try {
     page.on('request', request => requests.push(request.url()));
     page.on('requestfailed', request => { if (!request.failure()?.errorText.includes('ABORTED')) failed.push({ url: request.url(), reason: request.failure()?.errorText }); });
     page.on('response', response => { if (response.status() >= 400) errors.push(`HTTP ${response.status()} ${response.url()}`); });
-    await page.goto(base + (config.lang === 'en' ? 'en/' : ''), { waitUntil: 'networkidle' });
+    await page.goto(base + (config.lang === 'en' ? 'en/' : '') + 'report.html', { waitUntil: 'networkidle' });
     await page.evaluate(() => document.fonts.ready);
     await page.waitForTimeout(600);
     const shots = [];
@@ -86,7 +86,7 @@ try {
   for (const lang of ['zh', 'en']) {
     const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 375, height: 812 } });
     const page = await context.newPage();
-    await page.goto(base + (lang === 'en' ? 'en/' : ''), { waitUntil: 'networkidle' });
+    await page.goto(base + (lang === 'en' ? 'en/' : '') + 'report.html', { waitUntil: 'networkidle' });
     const check = await page.evaluate(() => ({ sections: document.querySelectorAll('main > section').length, svg: document.querySelectorAll('.phase-static svg').length, text: document.body.innerText.length, overflow: document.documentElement.scrollWidth > innerWidth }));
     await page.screenshot({ path: resolve(out, `no-js-${lang}.png`) });
     result.extra.push({ type: 'no-js', lang, ...check });
@@ -97,7 +97,7 @@ try {
     const page = await context.newPage();
     const requests = [];
     page.on('request', request => requests.push(request.url()));
-    await page.goto(`${base}${mode === 'force2d' ? '?force2d=1' : ''}`, { waitUntil: 'networkidle' });
+    await page.goto(`${base}report.html${mode === 'force2d' ? '?force2d=1' : ''}`, { waitUntil: 'networkidle' });
     await page.locator('#lab').scrollIntoViewIfNeeded();
     await page.waitForTimeout(900);
     const check = await page.evaluate(() => ({ canvas: document.querySelectorAll('canvas').length, play: document.querySelector('.lab__play')?.getAttribute('aria-pressed'), overflow: document.documentElement.scrollWidth > innerWidth }));
@@ -110,7 +110,7 @@ try {
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
-    await page.goto(base + 'en/', { waitUntil: 'networkidle' });
+    await page.goto(base + 'en/report.html', { waitUntil: 'networkidle' });
     for (const id of ['cover', 'fig-03', 'lab']) {
       await page.locator(`#${id}`).scrollIntoViewIfNeeded();
       await page.waitForTimeout(800);
@@ -128,7 +128,7 @@ try {
       };
     });
     const page = await context.newPage();
-    await page.goto(base, { waitUntil: 'networkidle' });
+    await page.goto(base + 'report.html', { waitUntil: 'networkidle' });
     await page.locator('#lab').scrollIntoViewIfNeeded();
     await page.waitForTimeout(1000);
     const fallback = await page.evaluate(() => ({ canvas: document.querySelectorAll('canvas').length, svg: document.querySelectorAll('.lab__stage > svg').length, notice: document.querySelector('.lab__notice')?.textContent }));

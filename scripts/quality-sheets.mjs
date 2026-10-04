@@ -2,7 +2,9 @@ import { chromium } from 'playwright';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 const folder = resolve(process.argv[2] ?? 'artifacts/quality/round-1');
-const audit = JSON.parse(await readFile(resolve(folder, 'browser-audit.json'), 'utf8'));
+const auditFile = process.argv[3] ?? 'browser-audit.json';
+if (!['browser-audit.json', 'lab-home-audit.json'].includes(auditFile)) throw new Error('未知的截图检查清单');
+const audit = JSON.parse(await readFile(resolve(folder, auditFile), 'utf8'));
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 try {
   for (const config of audit.pages) {

@@ -15,8 +15,11 @@
   font-size: var(--fs-14);
   line-height: 1.2;
   color: var(--text);
-  transition: background-color 160ms var(--ease-emph), color 160ms var(--ease-emph);
+  /* 选中态的前景与背景同时切换，保持整个交互过程的文字对比度。 */
+  transition: transform 120ms var(--ease-emph);
 }
+
+.seg > button:active { transform: translateY(1px); }
 
 .seg > button:last-child {
   border-right: 0;

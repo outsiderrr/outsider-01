@@ -8,6 +8,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "qa:browser": "node scripts/quality-audit.mjs",
+    "qa:home": "node scripts/lab-home-audit.mjs",
     "qa:interactions": "node scripts/interaction-audit.mjs",
     "qa:budgets": "node scripts/check-budgets.mjs",
     "qa:lighthouse": "node scripts/lighthouse-audit.mjs",

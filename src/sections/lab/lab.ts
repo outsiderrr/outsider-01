@@ -107,6 +107,16 @@ export function mountLab(root: HTMLElement, lang: Lang, opts: LabOptions = {}): 
         <input class="timeline__input" type="range" min="0" max="${Math.round(TEND * 1000)}" step="1" aria-label="${T('lab.timeline')}" />
       </div>
     </div>
+    <div class="lab__diagram-key" hidden>
+      <ul aria-label="${lang === 'zh' ? '示意图图例' : 'Diagram key'}">
+        <li><span class="lab__key-mark lab__key-mark--shoulder" aria-hidden="true"></span>${lang === 'zh' ? '肩轴投影' : 'Shoulder projection'}</li>
+        <li><span class="lab__key-mark lab__key-mark--hip" aria-hidden="true"></span>${lang === 'zh' ? '髋轴投影' : 'Hip projection'}</li>
+        <li><span class="lab__key-mark lab__key-mark--arc" aria-hidden="true"></span>${lang === 'zh' ? '夹角弧线' : 'Angle arc'}</li>
+        <li><span class="lab__key-mark lab__key-mark--weight" aria-hidden="true"></span>${lang === 'zh' ? '承重示意点' : 'Load marker'}</li>
+        <li><span class="lab__key-mark lab__key-mark--trail" aria-hidden="true"></span>${lang === 'zh' ? '拍头轨迹带' : 'Racket sweep'}</li>
+      </ul>
+      <p>${lang === 'zh' ? '肩轴与髋轴投影在地面，俯视采用叠加显示。肩髋差取模型的水平转角差。' : 'The shoulder and hip axes are ground projections, shown as overlays in Top view. Separation reports the model’s difference in horizontal rotation.'}</p>
+    </div>
     <p class="lab__keys label">${T('lab.keys')}</p>`;
 
   const q = <E extends Element>(sel: string) => root.querySelector(sel) as E;
@@ -118,6 +128,7 @@ export function mountLab(root: HTMLElement, lang: Lang, opts: LabOptions = {}): 
   const input = q<HTMLInputElement>('.timeline__input');
   const head = q<HTMLDivElement>('.timeline__head');
   const multiToggle = q<HTMLButtonElement>('.lab__multi-toggle');
+  const diagramKey = q<HTMLDivElement>('.lab__diagram-key');
   stageEl.setAttribute('role', 'group');
   stageEl.setAttribute('aria-label', T('lab.stageLabel'));
   stageEl.tabIndex = 0;
@@ -149,6 +160,7 @@ export function mountLab(root: HTMLElement, lang: Lang, opts: LabOptions = {}): 
     stageEl.appendChild(svg);
     }
     if (finalFallback) {
+      diagramKey.hidden = true;
       stageEl.insertAdjacentHTML('beforeend', `<p class="lab__notice">${T('lab.fallback')}</p>`);
       root.querySelectorAll<HTMLButtonElement>('[data-view]').forEach((b) => (b.disabled = b.dataset.view !== 'axo'));
     }
@@ -370,6 +382,7 @@ export function mountLab(root: HTMLElement, lang: Lang, opts: LabOptions = {}): 
       if (disposed) { pendingStage.dispose(); pendingStage = null; return; }
       stage = pendingStage;
       pendingStage = null;
+      diagramKey.hidden = false;
       svg?.remove();
       svg = null;
       stage.setActive(visible && !document.hidden);
