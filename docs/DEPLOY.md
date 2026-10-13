@@ -76,3 +76,7 @@ QA_URL=https://8.209.239.47/outsider-01/ QA_ROUND=prototype-release-online-repea
 - 共享路由、本站容器配置均无需改动；共享 Caddy 与本站容器 ID、启动时间保持不变，更新过程无需重启服务。
 - 新版 11 项 HTTP 检查、桌面/手机 × 浅深色四组浏览器检查全通过，共 20 张截图，每组六项检查。本轮线上浏览器直接访问成功，保持正常 TLS 校验。证据保存在 `artifacts/quality/prototype-animation-first-online/`；已刷新用户当前打开的线上页，页面呈现新顺序。
 - 如需回退此布局更新，只需将 `current` 原子切回 `releases/20261004T062717Z-e9ccc2a`，保留当前发布目录。此次未执行回退演练。
+
+### GitHub 源码交接（2026-10-13）
+
+用户于 2026-10-13 授权上传必要源码供 Grok BOT 接手，仓库为 `https://github.com/outsiderrr/outsider-01`，当前开发分支 `m5-quality`。此次只进行源码交接，现有阿里云页面、服务与发布目录保持原部署状态，GitHub Pages 未开启。后续部署使用本节之外的现有流程，并先核对远端实际状态。
